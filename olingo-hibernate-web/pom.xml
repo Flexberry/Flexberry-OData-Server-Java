@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>net.flexberry.services.odata</groupId>
+  <artifactId>olingo-hibernate-web</artifactId>
+  <packaging>war</packaging>
+  <version>1.0</version>
+  <name>${project.artifactId}</name>
+
+  <parent>
+    <groupId>net.flexberry.services.odata</groupId>
+    <artifactId>flexberry-odata-parent</artifactId>
+    <version>1.0</version>
+    <relativePath>..</relativePath>
+  </parent>
+
+
+
+  <properties>
+    <olingo.version>4.0.0-beta-02</olingo.version>
+  </properties>
+
+	<dependencies>
+	  <dependency>
+	    <groupId>javax.servlet</groupId>
+	    <artifactId>servlet-api</artifactId>
+	    <version>2.5</version>
+	    <scope>provided</scope>
+	  </dependency>
+	
+	  <dependency>
+	    <groupId>org.apache.olingo</groupId>
+	    <artifactId>odata-server-api</artifactId>
+	    <version>${olingo.version}</version>
+	  </dependency>
+	  <dependency>
+	    <groupId>org.apache.olingo</groupId>
+	    <artifactId>odata-server-core</artifactId>
+	    <version>${olingo.version}</version>
+	    <scope>runtime</scope>
+	  </dependency>
+	
+	  <dependency>
+	    <groupId>org.apache.olingo</groupId>
+	    <artifactId>odata-commons-api</artifactId>
+	    <version>${olingo.version}</version>
+	  </dependency>
+	  <dependency>
+	    <groupId>org.apache.olingo</groupId>
+	    <artifactId>odata-commons-core</artifactId>
+	    <version>${olingo.version}</version>
+	  </dependency>
+	
+	  <dependency>
+	    <groupId>org.slf4j</groupId>
+	    <artifactId>slf4j-simple</artifactId>
+	    <version>1.7.7</version>
+	    <scope>runtime</scope>
+	  </dependency>
+	
+		<dependency>
+		   <groupId>org.hibernate</groupId>
+		   <artifactId>hibernate-core</artifactId>
+		   <version>4.3.9.Final</version>
+		</dependency>
+
+		<dependency>
+		    <groupId>org.postgresql</groupId>
+		    <artifactId>postgresql</artifactId>
+		    <version>9.4-1201-jdbc41</version>
+		</dependency>
+  
+		<dependency>
+		    <groupId>org.simpleframework</groupId>
+		    <artifactId>simple-xml</artifactId>
+		    <version>2.7.1</version>
+		</dependency>  
+  
+</dependencies>
+
+  <build>
+
+    <finalName>${project.name}-${project.version}</finalName>
+
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>2.3</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>1.9</version>
+        </plugin>
+        <plugin>
+          <groupId>org.antlr</groupId>
+          <artifactId>antlr4-maven-plugin</artifactId>
+          <version>${antlr.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>com.keyboardsamurais.maven</groupId>
+          <artifactId>maven-timestamp-plugin</artifactId>
+          <version>1.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.rat</groupId>
+          <artifactId>apache-rat-plugin</artifactId>
+          <version>0.11</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-checkstyle-plugin</artifactId>
+          <version>2.12.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>2.3.2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>2.17</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>2.17</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>2.6</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-war-plugin</artifactId>
+          <version>2.4</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-invoker-plugin</artifactId>
+          <version>1.8</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>2.9.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>2.2.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>cobertura-maven-plugin</artifactId>
+          <version>2.6</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-remote-resources-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>process</goal>
+            </goals>
+            <configuration>
+              <properties>
+                <projectName>Apache Olingo</projectName>
+              </properties>
+              <resourceBundles>
+                <resourceBundle>org.apache:apache-jar-resource-bundle:1.4</resourceBundle>
+              </resourceBundles>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-war-plugin</artifactId>
+        <configuration>
+          <webResources>
+            <resource>
+              <!-- this is relative to the pom.xml directory -->
+              <directory>${project.build.directory}/maven-shared-archive-resources</directory>
+              <includes>
+                <include>META-INF/*</include>
+              </includes>
+            </resource>
+          </webResources>
+        </configuration>
+      </plugin> 
+      
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <configuration>
+          <encoding>UTF-8</encoding>
+          <useDefaultDelimiters>false</useDefaultDelimiters>
+          <delimiters>
+            <delimiter>${*}</delimiter>
+          </delimiters>
+        </configuration>
+      </plugin>       
+      
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.7</source>
+          <target>1.7</target>
+          <showWarnings>true</showWarnings>
+          <showDeprecation>true</showDeprecation>
+          <compilerArgument>-Xlint:unchecked</compilerArgument>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-eclipse-plugin</artifactId>
+        <version>2.9</version>
+        <configuration>
+          <useProjectReferences>false</useProjectReferences>
+          <addGroupIdToProjectName>true</addGroupIdToProjectName>
+          <addVersionToProjectName>true</addVersionToProjectName>
+          <wtpversion>2.0</wtpversion>
+          <downloadSources>true</downloadSources>
+          <downloadJavadocs>true</downloadJavadocs>
+          <sourceExcludes>
+            <excludes>
+              target/**
+            </excludes>
+          </sourceExcludes>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build> 
+</project>
