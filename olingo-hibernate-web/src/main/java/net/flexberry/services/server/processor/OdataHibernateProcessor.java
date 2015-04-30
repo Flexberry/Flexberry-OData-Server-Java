@@ -20,7 +20,9 @@ package net.flexberry.services.server.processor;
  */
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Locale;
@@ -34,6 +36,7 @@ import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntitySet;
 import org.apache.olingo.commons.api.data.Property;
 import org.apache.olingo.commons.api.edm.EdmComplexType;
+import org.apache.olingo.commons.api.edm.EdmElement;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveType;
 import org.apache.olingo.commons.api.edm.EdmProperty;
@@ -48,6 +51,7 @@ import org.apache.olingo.server.api.ODataRequest;
 import org.apache.olingo.server.api.ODataResponse;
 import org.apache.olingo.server.api.ServiceMetadata;
 import org.apache.olingo.server.api.deserializer.DeserializerException;
+import org.apache.olingo.server.api.deserializer.ODataDeserializer;
 import org.apache.olingo.server.api.processor.ComplexProcessor;
 import org.apache.olingo.server.api.processor.EntityCollectionProcessor;
 import org.apache.olingo.server.api.processor.EntityProcessor;
@@ -66,6 +70,7 @@ import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 import org.apache.olingo.server.api.uri.UriResourceProperty;
 import org.apache.olingo.server.api.uri.queryoption.ExpandOption;
 import org.apache.olingo.server.api.uri.queryoption.SelectOption;
+import org.apache.olingo.server.core.deserializer.json.ODataJsonDeserializer;
 
 /**
  * This processor will deliver entity collections, single entities as well as properties of an entity.
@@ -97,8 +102,12 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
 
     // Second we fetch the data for this specific entity set from the mock database and transform it into an EntitySet
     // object which is understood by our serialization
-    EntitySet entitySet = dataProvider.readAll(edmEntitySet);
-
+    EntitySet entitySet=null;
+    try {
+      entitySet = dataProvider.readAll(edmEntitySet);
+    } catch (Exception e) {
+      new ODataApplicationException("OdataHibernateDataProvider.readAll Exception", 0, null, e);
+    }
     // Next we create a serializer based on the requested format. This could also be a custom format but we do not
     // support them in this example
     final ODataFormat format = ODataFormat.fromContentType(requestedContentType);
@@ -114,7 +123,10 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
     .count(uriInfo.getCountOption())
     .expand(expand).select(select)
     .build();
+    //options.
     
+    //EdmElement el=edmEntitySet.getEntityType().getProperty("Timestamp");
+    //edmEntitySet.getEntityType().getStructuralProperty("Timestamp").
     
     InputStream serializedContent = serializer.entityCollection(edmEntitySet.getEntityType(), entitySet,options);
 
@@ -164,10 +176,41 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
   public void createEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo,
                            ContentType requestFormat, ContentType responseFormat)
           throws ODataApplicationException, DeserializerException, SerializerException {
-    throw new ODataApplicationException("Entity create is not supported yet.",
-            HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ENGLISH);
+    
+    ODataDeserializer deserializer=odata.createDeserializer(ODataFormat.fromContentType(requestFormat));
+    EdmEntitySet edmEntitySet = getEdmEntitySet(uriInfo.asUriInfoResource());
+    Entity entity=deserializer.entity(request.getBody(), edmEntitySet.getEntityType());
+    try {
+      dataProvider.create(entity);
+    } catch (Exception e) {
+      throw new ODataApplicationException("OdataHibernateProcessor.createEntity: "+e.getMessage(),HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),Locale.ENGLISH,e);
+    }
+    
+    final ODataFormat format = ODataFormat.fromContentType(responseFormat);
+    ODataSerializer serializer = odata.createSerializer(format);
+    response.setContent(serializer.entity(edmEntitySet.getEntityType(), entity,
+            EntitySerializerOptions.with()
+                    .contextURL(format == ODataFormat.JSON_NO_METADATA ? null :
+                            getContextUrl(edmEntitySet, true, null, null))
+                    .build()));
+    response.setStatusCode(HttpStatusCode.CREATED.getStatusCode());
+    response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
+    response.setHeader(HttpHeader.LOCATION,
+            request.getRawBaseUri() + '/' + odata.createUriHelper().buildCanonicalURL(edmEntitySet, entity));
+    //throw new ODataApplicationException("Entity create is not supported yet.",HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ENGLISH);
   }
 
+  private ContextURL getContextUrl(final EdmEntitySet entitySet, final boolean isSingleEntity,
+      final ExpandOption expand, final SelectOption select) throws SerializerException {
+    return ContextURL.with().entitySet(entitySet)
+        .selectList(odata.createUriHelper()
+            .buildContextURLSelectList(entitySet.getEntityType(), expand, select))
+        .suffix(isSingleEntity ? Suffix.ENTITY : null)
+        .build();
+  }
+  
+  
+  
   @Override
   public void deleteEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo)
           throws ODataApplicationException {
@@ -283,7 +326,13 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
       throws OdataHibernateDataProvider.DataProviderException {
     // This method will extract the key values and pass them to the data provider
     final UriResourceEntitySet resourceEntitySet = (UriResourceEntitySet) uriInfo.getUriResourceParts().get(0);
-    return dataProvider.read(entitySet, resourceEntitySet.getKeyPredicates());
+    Entity entity;
+    try {
+      entity = dataProvider.read(entitySet, resourceEntitySet.getKeyPredicates());
+      return entity;
+    } catch (Exception e) {
+      throw new OdataHibernateDataProvider.DataProviderException("OdataHibernateProcessor.readEntityInternal",e);
+    }
   }
 
   private EdmEntitySet getEdmEntitySet(final UriInfoResource uriInfo) throws ODataApplicationException {

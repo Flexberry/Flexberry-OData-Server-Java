@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.hibernate.Session;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
 import org.simpleframework.xml.Attribute;
@@ -39,6 +40,20 @@ public class HibernateUtil {
   public static org.hibernate.SessionFactory getSessionFactory() {
       return sessionFactory;
   }
+  
+  public static void testHibernate() {
+    List objs=null;
+    Session session = null;
+    try {
+      session = getSessionFactory().openSession();
+      objs=session.createCriteria("servicebus.ApplicationLog").list();
+    } finally {
+        if (session != null && session.isOpen()) {
+          session.close();
+        }
+    } 
+  }
+  
   
   public static List<String> getClassesMapping() throws Exception {
     Strategy strategy=new Strategy() {

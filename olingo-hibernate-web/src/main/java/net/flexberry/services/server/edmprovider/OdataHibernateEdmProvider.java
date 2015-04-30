@@ -57,7 +57,7 @@ public class OdataHibernateEdmProvider extends EdmProvider {
   public EntityType getEntityType(final FullQualifiedName entityTypeName) throws ODataException {
     try {
       PrimitiveTypeParser parser=new PrimitiveTypeParser(entityTypeName);
-      EntityType entityType=parser.getEntityType();
+      EntityType entityType=parser.createEntityType();
       /*
       entityType.setNavigationProperties(Arrays.asList(
           new NavigationProperty().setName("Manufacturer").setType(ET_MANUFACTURER)

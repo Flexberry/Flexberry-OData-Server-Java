@@ -9,6 +9,7 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,7 @@ public class OdataHibernateDataProvider {
 
   private Map<String, EntitySet> data;
   private List<String> classesNames;
+  private List<Class<?>> classes;
   private String namespace;
   
   public Set<String> getEntitySets(){
@@ -65,18 +67,7 @@ public class OdataHibernateDataProvider {
     return "EntitySet_"+classesNames.indexOf(cls);
   }
   
-  
-  
-  private void init(List<Class<?>> classes) throws ClassNotFoundException, IOException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
-    if(classesNames.size()>0){
-      int p=classesNames.get(0).lastIndexOf(".");
-      if(p!=-1)
-        namespace=classesNames.get(0).substring(0,p);
-      else
-        namespace="";
-    }
-    
-    
+  private void init() throws ClassNotFoundException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
     Session session = null;
     data = new HashMap<String, EntitySet>();
     try{
@@ -106,6 +97,18 @@ public class OdataHibernateDataProvider {
       }
     }
   }
+  
+  private void init(List<Class<?>> classes) throws ClassNotFoundException, IOException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
+    if(classesNames.size()>0){
+      int p=classesNames.get(0).lastIndexOf(".");
+      if(p!=-1)
+        namespace=classesNames.get(0).substring(0,p);
+      else
+        namespace="";
+    }
+    this.classes=classes;
+    init();
+  }
   public OdataHibernateDataProvider(List<String> classesNames) throws ClassNotFoundException, IOException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
     List<Class<?>> classes = new ArrayList<Class<?>>();
     this.classesNames=classesNames;
@@ -134,12 +137,37 @@ public class OdataHibernateDataProvider {
     init(classes);
   }
   
-  public EntitySet readAll(EdmEntitySet edmEntitySet) {
+  public EntitySet readAll(EdmEntitySet edmEntitySet) throws ClassNotFoundException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    init();
     return data.get(edmEntitySet.getName());
   }
 
-  public Entity read(final EdmEntitySet edmEntitySet, final List<UriParameter> keys) throws DataProviderException {
+  public void create(Entity entity) throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
+    PrimitiveTypeParser parser=new PrimitiveTypeParser(entity.getType());
+    Object obj=parser.createObject();
+    for (org.apache.olingo.commons.api.data.Property prop : entity.getProperties()) {
+      String method=parser.getColumns().get(prop.getName());
+      method="set"+method.substring(3);
+      Method md=obj.getClass().getMethod(method,prop.getValue().getClass());
+      md.invoke(obj,prop.getValue());
+    }
+    Session session = null;
+    try {
+        session = HibernateUtil.getSessionFactory().openSession();
+        session.beginTransaction();
+        session.save(obj);
+        session.getTransaction().commit();
+    } finally {
+        if (session != null && session.isOpen()) {
+            session.close();
+        }
+    }
+    
+  }
+  
+  public Entity read(final EdmEntitySet edmEntitySet, final List<UriParameter> keys) throws DataProviderException, ClassNotFoundException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
     final EdmEntityType entityType = edmEntitySet.getEntityType();
+    init();
     final EntitySet entitySet = data.get(edmEntitySet.getName());
     if (entitySet == null) {
       return null;
@@ -150,10 +178,12 @@ public class OdataHibernateDataProvider {
           for (final UriParameter key : keys) {
             final EdmProperty property = (EdmProperty) entityType.getProperty(key.getName());
             final EdmPrimitiveType type = (EdmPrimitiveType) property.getType();
-            if (!type.valueToString(entity.getProperty(key.getName()).getValue(),
+            final Object value = entity.getProperty(key.getName()).getValue();
+            final Object keyValue = type.valueOfString(type.fromUriLiteral(key.getText()),
                 property.isNullable(), property.getMaxLength(), property.getPrecision(), property.getScale(),
-                property.isUnicode())
-                .equals(key.getText())) {
+                property.isUnicode(),
+                Calendar.class.isAssignableFrom(value.getClass()) ? Calendar.class : value.getClass());
+            if (!value.equals(keyValue)) {
               found = false;
               break;
             }

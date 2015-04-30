@@ -33,6 +33,7 @@ public class OdataHibernateServlet extends HttpServlet {
 	    try {
 	      HttpSession session = req.getSession(true);
 	      OdataHibernateDataProvider dataProvider = (OdataHibernateDataProvider) session.getAttribute(OdataHibernateDataProvider.class.getName());
+	      //HibernateUtil.testHibernate();
 	      if (dataProvider == null) {
 	        dataProvider = new OdataHibernateDataProvider(HibernateUtil.getClassesMapping());
 	        session.setAttribute(OdataHibernateDataProvider.class.getName(), dataProvider);
