@@ -34,21 +34,21 @@ import org.apache.olingo.commons.core.data.EntitySetImpl;
 import org.apache.olingo.commons.core.data.PropertyImpl;
 import org.apache.olingo.server.api.edm.provider.Property;
 import org.apache.olingo.server.api.uri.UriParameter;
+import org.hibernate.Criteria;
 import org.hibernate.Session;
+import org.hibernate.criterion.Conjunction;
+import org.hibernate.criterion.Criterion;
+import org.hibernate.criterion.Example;
+import org.hibernate.criterion.Expression;
+import org.hibernate.criterion.Restrictions;
 
 
 
 public class OdataHibernateDataProvider {
-
-  private Map<String, EntitySet> data;
+  private Map<String, Class<?>> mapEntitySet=new HashMap<String, Class<?>>();
   private List<String> classesNames;
-  private List<Class<?>> classes;
   private String namespace;
   
-  public Set<String> getEntitySets(){
-    return data.keySet();
-  }
-
   public List<String> getClassesNames(){
     return classesNames;
   }
@@ -67,37 +67,6 @@ public class OdataHibernateDataProvider {
     return "EntitySet_"+classesNames.indexOf(cls);
   }
   
-  private void init() throws ClassNotFoundException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
-    Session session = null;
-    data = new HashMap<String, EntitySet>();
-    try{
-      session = HibernateUtil.getSessionFactory().openSession();
-      for (Class<?> clazz : classes) {
-        String name=clazz.getCanonicalName();
-        PrimitiveTypeParser parser=new PrimitiveTypeParser(name);
-        HashMap<String, String> methods=parser.getMethods();
-        EntitySet entitySet = new EntitySetImpl();
-        List<Entity> entities=entitySet.getEntities();
-        @SuppressWarnings("rawtypes")
-        List objs = session.createCriteria(clazz).list();
-        for (Object obj : objs) {
-          EntityImpl entity=new EntityImpl();
-          for (String method : methods.keySet()) {
-            Method md=clazz.getMethod(method);
-            PropertyImpl property=new PropertyImpl(null, methods.get(method), ValueType.PRIMITIVE, md.invoke(obj));
-            entity.addProperty(property);
-          }
-          entities.add(entity);
-        }
-        data.put(getEntitySetName(clazz.getCanonicalName()), entitySet);
-      }
-    }finally {
-      if (session != null && session.isOpen()) {
-          session.close();
-      }
-    }
-  }
-  
   private void init(List<Class<?>> classes) throws ClassNotFoundException, IOException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
     if(classesNames.size()>0){
       int p=classesNames.get(0).lastIndexOf(".");
@@ -106,8 +75,9 @@ public class OdataHibernateDataProvider {
       else
         namespace="";
     }
-    this.classes=classes;
-    init();
+    for (Class<?> clazz : classes) {
+      mapEntitySet.put(getEntitySetName(clazz.getCanonicalName()), clazz);
+    }
   }
   public OdataHibernateDataProvider(List<String> classesNames) throws ClassNotFoundException, IOException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
     List<Class<?>> classes = new ArrayList<Class<?>>();
@@ -138,18 +108,33 @@ public class OdataHibernateDataProvider {
   }
   
   public EntitySet readAll(EdmEntitySet edmEntitySet) throws ClassNotFoundException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-    init();
-    return data.get(edmEntitySet.getName());
+    String entitySetName=edmEntitySet.getName();
+    Session session = null;
+    try{
+      session = HibernateUtil.getSessionFactory().openSession();
+      Class<?> clazz=mapEntitySet.get(entitySetName);
+      PrimitiveTypeParser parser=new PrimitiveTypeParser(clazz.getCanonicalName());
+      EntitySet entitySet = new EntitySetImpl();
+      List<Entity> entities=entitySet.getEntities();
+      @SuppressWarnings("rawtypes")
+      List objs = session.createCriteria(clazz).list();
+      for (Object obj : objs) {
+        entities.add(parser.createEntity(obj));
+      }
+      return entitySet;
+
+    }finally {
+      if (session != null && session.isOpen()) {
+          session.close();
+      }
+    }
   }
 
   public void create(Entity entity) throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
     PrimitiveTypeParser parser=new PrimitiveTypeParser(entity.getType());
     Object obj=parser.createObject();
     for (org.apache.olingo.commons.api.data.Property prop : entity.getProperties()) {
-      String method=parser.getColumns().get(prop.getName());
-      method="set"+method.substring(3);
-      Method md=obj.getClass().getMethod(method,prop.getValue().getClass());
-      md.invoke(obj,prop.getValue());
+      parser.invokeSetMethod(obj,prop.getName(),prop.getValue());
     }
     Session session = null;
     try {
@@ -165,36 +150,40 @@ public class OdataHibernateDataProvider {
     
   }
   
-  public Entity read(final EdmEntitySet edmEntitySet, final List<UriParameter> keys) throws DataProviderException, ClassNotFoundException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+  public Entity read(final EdmEntitySet edmEntitySet, final List<UriParameter> keys) throws DataProviderException, ClassNotFoundException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InstantiationException, EdmPrimitiveTypeException {
     final EdmEntityType entityType = edmEntitySet.getEntityType();
-    init();
-    final EntitySet entitySet = data.get(edmEntitySet.getName());
-    if (entitySet == null) {
-      return null;
-    } else {
-      try {
-        for (final Entity entity : entitySet.getEntities()) {
-          boolean found = true;
-          for (final UriParameter key : keys) {
-            final EdmProperty property = (EdmProperty) entityType.getProperty(key.getName());
-            final EdmPrimitiveType type = (EdmPrimitiveType) property.getType();
-            final Object value = entity.getProperty(key.getName()).getValue();
-            final Object keyValue = type.valueOfString(type.fromUriLiteral(key.getText()),
-                property.isNullable(), property.getMaxLength(), property.getPrecision(), property.getScale(),
-                property.isUnicode(),
-                Calendar.class.isAssignableFrom(value.getClass()) ? Calendar.class : value.getClass());
-            if (!value.equals(keyValue)) {
-              found = false;
-              break;
-            }
-          }
-          if (found) {
-            return entity;
-          }
+    final PrimitiveTypeParser parser=new PrimitiveTypeParser(entityType.getFullQualifiedName());
+    final Object obj=parser.createObject();
+    Session session = null;
+    try{
+      session = HibernateUtil.getSessionFactory().openSession();
+      Criteria criteria=session.createCriteria(obj.getClass());
+      for (final UriParameter key : keys) {
+        final EdmProperty property = (EdmProperty) entityType.getProperty(key.getName());
+        final EdmPrimitiveType type = (EdmPrimitiveType) property.getType();
+        final Class<?> returnType=parser.getType(key.getName());
+        try {
+        final Object keyValue = type.valueOfString(type.fromUriLiteral(key.getText()),
+          property.isNullable(), property.getMaxLength(), property.getPrecision(), property.getScale(),
+          property.isUnicode(),
+          returnType);
+          //Calendar.class.isAssignableFrom(returnType) ? Calendar.class : returnType);
+          criteria.add(Restrictions.eq(key.getName(),keyValue));
+          //parser.invokeSetMethod(obj,key.getName(),keyValue);
+        } catch (final EdmPrimitiveTypeException e) {
+          throw new DataProviderException("Wrong key!", e);
         }
-        return null;
-      } catch (final EdmPrimitiveTypeException e) {
-        throw new DataProviderException("Wrong key!", e);
+      }
+      @SuppressWarnings("rawtypes")
+      List objs = criteria.list();
+        //.add(Example.create(obj).ignoreCase())
+      if(objs.size()==0)
+        throw new DataProviderException("Object not found!");
+      return parser.createEntity(objs.get(0));
+
+    }finally {
+      if (session != null && session.isOpen()) {
+          session.close();
       }
     }
   }

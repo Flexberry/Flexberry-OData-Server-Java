@@ -11,8 +11,11 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 
 import org.apache.olingo.commons.api.data.EntitySet;
+import org.apache.olingo.commons.api.data.ValueType;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.apache.olingo.commons.core.data.EntityImpl;
+import org.apache.olingo.commons.core.data.PropertyImpl;
 import org.apache.olingo.server.api.edm.provider.EntityType;
 import org.apache.olingo.server.api.edm.provider.Property;
 import org.apache.olingo.server.api.edm.provider.PropertyRef;
@@ -44,6 +47,36 @@ public class PrimitiveTypeParser {
     return cl.getConstructor(new Class[0]).newInstance();
   }
   
+  public EntityImpl createEntity(Object obj) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
+    EntityImpl entity=new EntityImpl();
+    for (String column : getColumns().keySet()) {
+      PropertyImpl property=new PropertyImpl(null, column, ValueType.PRIMITIVE, invokeGetMethod(obj,column));
+      entity.addProperty(property);
+    }
+    return entity;
+  }
+  
+  
+  
+  public void invokeSetMethod(Object obj,String columnName,Object value) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
+    String method=getColumns().get(columnName);
+    method="set"+method.substring(3);
+    Method md=cl.getMethod(method,value.getClass());
+    md.invoke(obj,value);
+  }
+
+  public Object invokeGetMethod(Object obj,String columnName) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
+    String method=getColumns().get(columnName);
+    Method md=cl.getMethod(method);
+    return md.invoke(obj);
+  }
+  
+  
+  
+  public Class<?> getType(String columnName) throws NoSuchMethodException, SecurityException{
+    String method=getColumns().get(columnName);
+    return cl.getMethod(method).getReturnType();
+  }
   
   public PrimitiveTypeParser(FullQualifiedName fqn) throws ClassNotFoundException{
     this.fqn=fqn;
