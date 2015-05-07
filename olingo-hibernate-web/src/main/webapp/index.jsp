@@ -43,12 +43,10 @@
   </ul>
   <hr>
 
-  <h2>Students Sample Service</h2>
+  <h2>hibernate.svc</h2>
   <ul>
-    <li><a href="students.svc/">Service Document</a></li>
-    <li><a href="students.svc/$metadata">Metadata</a></li>
-    <li>Entity Set: <a href="students.svc/EntitySet_Student">EntitySet_Student</a></li>
-    <li>Entity: <a href="students.svc/EntitySet_Student(1)">EntitySet_Student(1)</a></li>
+    <li><a href="hibernate.svc/">Service Document</a></li>
+    <li><a href="hibernate.svc/$metadata">Metadata</a></li>
   </ul>
 
 

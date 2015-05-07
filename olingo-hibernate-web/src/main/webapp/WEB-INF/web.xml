@@ -40,19 +40,6 @@
 	</servlet-mapping>
 
 
-
-	<servlet>
-	  <servlet-name>StudentsServlet</servlet-name>
-	  <servlet-class>org.apache.olingo.server.sample.StudentsServlet</servlet-class>
-	  <load-on-startup>1</load-on-startup>
-	</servlet>
-	
-	<servlet-mapping>
-	  <servlet-name>StudentsServlet</servlet-name>
-	  <url-pattern>/students.svc/*</url-pattern>
-	</servlet-mapping>
-
-
   <servlet>
     <servlet-name>OdataHibernateServlet</servlet-name>
     <servlet-class>net.flexberry.services.server.OdataHibernateServlet</servlet-class>

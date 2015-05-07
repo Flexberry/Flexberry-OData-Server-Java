@@ -19,26 +19,18 @@
 //package org.apache.olingo.server.sample.edmprovider;
 package net.flexberry.services.server.edmprovider;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import net.flexberry.services.edm.PrimitiveTypeParser;
 import net.flexberry.services.server.data.OdataHibernateDataProvider;
 
 import org.apache.olingo.commons.api.ODataException;
-import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.apache.olingo.commons.api.edm.Target;
-import org.apache.olingo.server.api.edm.provider.ComplexType;
 import org.apache.olingo.server.api.edm.provider.EdmProvider;
 import org.apache.olingo.server.api.edm.provider.EntityContainer;
 import org.apache.olingo.server.api.edm.provider.EntityContainerInfo;
 import org.apache.olingo.server.api.edm.provider.EntitySet;
 import org.apache.olingo.server.api.edm.provider.EntityType;
-import org.apache.olingo.server.api.edm.provider.NavigationProperty;
-import org.apache.olingo.server.api.edm.provider.NavigationPropertyBinding;
-import org.apache.olingo.server.api.edm.provider.Property;
-import org.apache.olingo.server.api.edm.provider.PropertyRef;
 import org.apache.olingo.server.api.edm.provider.Schema;
 
 public class OdataHibernateEdmProvider extends EdmProvider {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  ******************************************************************************/
-package org.apache.olingo.fit.server;
+package net.flexberry.services.client;
 
 import org.apache.catalina.Context;
 import org.apache.catalina.LifecycleException;
@@ -176,7 +176,7 @@ public class TomcatTestServer {
 
     private void initializeProperties() {
       InputStream propertiesFile =
-          Thread.currentThread().getContextClassLoader().getResourceAsStream("tomcat-fit.properties");
+          Thread.currentThread().getContextClassLoader().getResourceAsStream("tomcat.properties");
       try {
         properties = new Properties();
         properties.load(propertiesFile);

@@ -1,0 +1,41 @@
+<!DOCTYPE hibernate-configuration PUBLIC
+    "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+    "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+  <session-factory>
+    <property name="connection.driver_class">org.postgresql.Driver</property>
+    <property name="connection.url">jdbc:postgresql://localhost:5432/test</property>  
+    <property name="connection.username">postgres</property>
+    <property name="connection.password">fk</property>
+    <property name="connection.pool_size">10</property>
+    <property name="dialect">org.hibernate.dialect.PostgreSQLDialect</property>
+    <property name="show_sql">true</property>
+    <property name="hbm2ddl.auto">create</property>
+    <property name="hibernate.connection.autocommit">false</property>
+    <property name="current_session_context_class">thread</property>
+
+    <mapping class="servicebus.ApplicationLog"/>
+    <mapping class="servicebus.LogMsg"/>
+    <mapping class="servicebus.UserSetting"/>
+    <mapping class="servicebus.Клиент"/>
+    <mapping class="servicebus.Подписка"/>
+    <mapping class="servicebus.Сообщение"/>
+    <mapping class="servicebus.ТипСообщения"/>
+    <mapping class="servicebus.Тэг"/>
+    <mapping class="servicebus.Шина"/>
+     
+    <mapping class="servicebus.Stormag"/>
+    <mapping class="servicebus.StormadvLimit"/>
+    <mapping class="servicebus.StormauEntity"/>
+    <mapping class="servicebus.StormauField"/>
+    <mapping class="servicebus.StormauObjType"/>
+    <mapping class="servicebus.Stormfilterdetail"/>
+    <mapping class="servicebus.Stormfilterlookup"/>
+    <mapping class="servicebus.Stormfiltersetting"/>
+    <mapping class="servicebus.Stormlg"/>
+    <mapping class="servicebus.Stormnetlockdata"/>
+    <mapping class="servicebus.Stormsettings"/>
+    <mapping class="servicebus.Stormwebsearch"/>
+   
+  </session-factory>
+</hibernate-configuration>
