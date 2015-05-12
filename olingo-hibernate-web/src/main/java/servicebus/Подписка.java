@@ -46,7 +46,9 @@ public class Подписка  implements java.io.Serializable {
         this.типСообщения = типСообщения;
         this.датаПрекращения = датаПрекращения;
     }
-    public Подписка(String primaryKey, Клиент клиент, ТипСообщения типСообщения, Шина шина, long датаПрекращения, Boolean isCallBack, Integer неудПопытки, String передаватьПо, String описание, Date createTime, String creator, Date editTime, String editor) {
+    public Подписка(String primaryKey, Клиент клиент, ТипСообщения типСообщения, Шина шина, long датаПрекращения,
+        Boolean isCallBack, Integer неудПопытки, String передаватьПо, String описание, Date createTime, String creator,
+        Date editTime, String editor) {
        this.primaryKey = primaryKey;
        this.клиент = клиент;
        this.типСообщения = типСообщения;

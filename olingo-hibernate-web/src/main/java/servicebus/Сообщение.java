@@ -56,7 +56,10 @@ public class Сообщение  implements java.io.Serializable {
         this.типСообщения = типСообщения;
         this.времяФормирования = времяФормирования;
     }
-    public Сообщение(String primaryKey, Клиент клиент, ТипСообщения типСообщения, Шина шина, String тело, Date времяФормирования, String отправитель, String вложениеДляБазы, Integer приоритет, String имяГруппы, Boolean отправляется, Integer failsCount, String тэги, String logMessages, Date createTime, String creator, Date editTime, String editor, Set<LogMsg> logMsgs, Set<Тэг> тэгs) {
+    public Сообщение(String primaryKey, Клиент клиент, ТипСообщения типСообщения, Шина шина, String тело,
+        Date времяФормирования, String отправитель, String вложениеДляБазы, Integer приоритет, String имяГруппы,
+        Boolean отправляется, Integer failsCount, String тэги, String logMessages, Date createTime, String creator,
+        Date editTime, String editor, Set<LogMsg> logMsgs, Set<Тэг> тэгs) {
        this.primaryKey = primaryKey;
        this.клиент = клиент;
        this.типСообщения = типСообщения;

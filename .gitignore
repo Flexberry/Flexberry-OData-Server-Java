@@ -11,5 +11,6 @@ olingo-hibernate-web/.classpath
 olingo-hibernate-web/hibernate.cfg.xml-mssql
 olingo-hibernate-web/hibernate.cfg.xml-postgres
 olingo-hibernate-web/TOMCAT
+olingo-hibernate-web/.checkstyle
 .settings
 .project

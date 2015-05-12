@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 
 public abstract class AbstractBaseTestITCase {
 
-  protected static final String SERVICE_URI = OdataHibernateSvcConst.BASE_URI;
+  protected static final String SERVICE_URI = "http://localhost:9080/olingo-hibernate-web/hibernate.svc";
 
   /**
    * Logger.
@@ -88,7 +88,8 @@ public abstract class AbstractBaseTestITCase {
     TomcatTestServer.init(9080)
         .addServlet(OdataHibernateServlet.class, "/olingo-hibernate-web/hibernate.svc/*")
         .addWebApp(false)
-        .start();
+        .start()
+        ;
   }
 
 }

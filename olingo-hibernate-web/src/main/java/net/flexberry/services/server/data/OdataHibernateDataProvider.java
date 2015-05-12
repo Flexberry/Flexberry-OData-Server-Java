@@ -45,8 +45,9 @@ public class OdataHibernateDataProvider {
   }
 
   public String getEntitySetName0(String cls){
-    if(namespace.length()==0)
+    if(namespace.length()==0) {
       return "EntitySet_"+cls;
+    }
     return "EntitySet_"+cls.substring(namespace.length()+1);
   }
   
@@ -54,19 +55,22 @@ public class OdataHibernateDataProvider {
     return "EntitySet_"+classesNames.indexOf(cls);
   }
   
-  private void init(List<Class<?>> classes) throws ClassNotFoundException, IOException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
+  private void init(List<Class<?>> classes) throws ClassNotFoundException, IOException, NoSuchMethodException,
+  SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
     if(classesNames.size()>0){
       int p=classesNames.get(0).lastIndexOf(".");
-      if(p!=-1)
+      if(p!=-1) {
         namespace=classesNames.get(0).substring(0,p);
-      else
+      } else {
         namespace="";
+      }
     }
     for (Class<?> clazz : classes) {
       mapEntitySet.put(getEntitySetName(clazz.getCanonicalName()), clazz);
     }
   }
-  public OdataHibernateDataProvider(List<String> classesNames) throws ClassNotFoundException, IOException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
+  public OdataHibernateDataProvider(List<String> classesNames) throws ClassNotFoundException, IOException,
+  NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
     List<Class<?>> classes = new ArrayList<Class<?>>();
     this.classesNames=classesNames;
     for (String className : classesNames) {
@@ -76,7 +80,8 @@ public class OdataHibernateDataProvider {
   }
   
   
-  public OdataHibernateDataProvider(String javaPackage) throws ClassNotFoundException, IOException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
+  public OdataHibernateDataProvider(String javaPackage) throws ClassNotFoundException, IOException, 
+  NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
     String packageDir = javaPackage.replaceAll("[.]", "/");
     List<Class<?>> classes = new ArrayList<Class<?>>();
     URL upackage = getClass().getClassLoader().getResource(packageDir);
@@ -94,7 +99,8 @@ public class OdataHibernateDataProvider {
     init(classes);
   }
   
-  public EntitySet readAll(EdmEntitySet edmEntitySet) throws ClassNotFoundException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+  public EntitySet readAll(EdmEntitySet edmEntitySet) throws ClassNotFoundException, NoSuchMethodException,
+  SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
     String entitySetName=edmEntitySet.getName();
     Session session = null;
     try{
@@ -117,7 +123,8 @@ public class OdataHibernateDataProvider {
     }
   }
 
-  public void create(Entity entity) throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
+  public void create(Entity entity) throws ClassNotFoundException, NoSuchMethodException, SecurityException,
+  InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
     PrimitiveTypeParser parser=new PrimitiveTypeParser(entity.getType());
     Object obj=parser.createObject();
     for (org.apache.olingo.commons.api.data.Property prop : entity.getProperties()) {
@@ -137,7 +144,50 @@ public class OdataHibernateDataProvider {
     
   }
   
-  public Entity read(final EdmEntitySet edmEntitySet, final List<UriParameter> keys) throws DataProviderException, ClassNotFoundException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InstantiationException, EdmPrimitiveTypeException {
+  public void delete(final EdmEntitySet edmEntitySet, final List<UriParameter> keys) throws 
+  ClassNotFoundException, DataProviderException, InstantiationException, IllegalAccessException, 
+  IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException{
+    final EdmEntityType entityType = edmEntitySet.getEntityType();
+    final PrimitiveTypeParser parser=new PrimitiveTypeParser(entityType.getFullQualifiedName());
+    final Object obj=parser.createObject();
+    Session session = null;
+    try{
+      session = HibernateUtil.getSessionFactory().openSession();
+      Criteria criteria=session.createCriteria(obj.getClass());
+      for (final UriParameter key : keys) {
+        final EdmProperty property = (EdmProperty) entityType.getProperty(key.getName());
+        final EdmPrimitiveType type = (EdmPrimitiveType) property.getType();
+        final Class<?> returnType=parser.getType(key.getName());
+        try {
+        final Object keyValue = type.valueOfString(type.fromUriLiteral(key.getText()),
+          property.isNullable(), property.getMaxLength(), property.getPrecision(), property.getScale(),
+          property.isUnicode(),
+          returnType);
+          criteria.add(Restrictions.eq(key.getName(),keyValue));
+        } catch (final EdmPrimitiveTypeException e) {
+          throw new DataProviderException("Wrong key!", e);
+        }
+      }
+      @SuppressWarnings("rawtypes")
+      List objs = criteria.list();
+      if(objs.size()==0) {
+        throw new NotFoundDataProviderException("Object not found!");
+      }
+      session.beginTransaction();
+      session.delete(objs.get(0));
+      session.getTransaction().commit();
+    }finally {
+      if (session != null && session.isOpen()) {
+          session.close();
+      }
+    }
+  }
+  
+  
+  public Entity read(final EdmEntitySet edmEntitySet, final List<UriParameter> keys) 
+      throws DataProviderException, ClassNotFoundException, NoSuchMethodException, SecurityException, 
+      IllegalAccessException, IllegalArgumentException, InvocationTargetException, InstantiationException,
+      EdmPrimitiveTypeException {
     final EdmEntityType entityType = edmEntitySet.getEntityType();
     final PrimitiveTypeParser parser=new PrimitiveTypeParser(entityType.getFullQualifiedName());
     final Object obj=parser.createObject();
@@ -164,8 +214,9 @@ public class OdataHibernateDataProvider {
       @SuppressWarnings("rawtypes")
       List objs = criteria.list();
         //.add(Example.create(obj).ignoreCase())
-      if(objs.size()==0)
-        throw new DataProviderException("Object not found!");
+      if(objs.size()==0) {
+        throw new NotFoundDataProviderException("Object not found!");
+      }
       return parser.createEntity(objs.get(0));
 
     }finally {
@@ -186,4 +237,20 @@ public class OdataHibernateDataProvider {
       super(message);
     }
   }
+  
+  public static class NotFoundDataProviderException extends DataProviderException {
+    private static final long serialVersionUID = 5098059649321796151L;
+
+    public NotFoundDataProviderException(String message, Throwable throwable) {
+      super(message, throwable);
+    }
+
+    public NotFoundDataProviderException(String message) {
+      super(message);
+    }
+  }
+  
+  
+  
+  
 } 

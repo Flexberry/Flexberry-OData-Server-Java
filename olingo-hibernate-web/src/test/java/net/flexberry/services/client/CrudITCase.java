@@ -21,13 +21,19 @@ package net.flexberry.services.client;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.net.URI;
 import java.util.HashMap;
 
+import org.apache.olingo.client.api.communication.ODataClientErrorException;
+import org.apache.olingo.client.api.communication.request.cud.ODataDeleteRequest;
 import org.apache.olingo.client.api.communication.request.cud.ODataEntityCreateRequest;
 import org.apache.olingo.client.api.communication.request.retrieve.ODataEntityRequest;
+import org.apache.olingo.client.api.communication.response.ODataDeleteResponse;
 import org.apache.olingo.client.api.communication.response.ODataEntityCreateResponse;
 import org.apache.olingo.client.api.communication.response.ODataRetrieveResponse;
+import org.apache.olingo.client.api.v4.ODataClient;
 import org.apache.olingo.commons.api.domain.v4.ODataEntity;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.apache.olingo.commons.api.format.ODataFormat;
@@ -38,31 +44,55 @@ public class CrudITCase extends AbstractBaseTestITCase {
 
   @Test
   public void crud() {
+    final ODataClient client = getClient();
     String entityType="servicebus.ApplicationLog";
     HashMap<String, String> map=getMapEntitySet();
     assertTrue(map.containsKey(entityType));
     String entitySetName=map.get(entityType);
     String guid=getGUID();
-    ODataEntity entity = getClient().getObjectFactory().
+    
+    // Test an interface of create 
+    ODataEntity entity = client.getObjectFactory().
         newEntity(new FullQualifiedName(entityType));
-    entity.getProperties().add(getClient().getObjectFactory().newPrimitiveProperty("Priority",
-        getClient().getObjectFactory().newPrimitiveValueBuilder().buildInt32(333)));
-    entity.getProperties().add(getClient().getObjectFactory().newPrimitiveProperty("primaryKey",
-        getClient().getObjectFactory().newPrimitiveValueBuilder().buildString(guid)));
-    final ODataEntityCreateRequest<ODataEntity> req = getClient().getCUDRequestFactory().getEntityCreateRequest(
-        getClient().newURIBuilder(SERVICE_URI).appendEntitySetSegment(entitySetName).build(), entity);
-    req.setFormat(ODataFormat.JSON_NO_METADATA);
-    final ODataEntityCreateResponse<ODataEntity> res = req.execute();
-    assertEquals(201, res.getStatusCode());
-    ODataEntityRequest<ODataEntity> request = getClient().getRetrieveRequestFactory().getEntityRequest(getClient().newURIBuilder(SERVICE_URI)
+    entity.getProperties().add(client.getObjectFactory().newPrimitiveProperty("Priority",
+        client.getObjectFactory().newPrimitiveValueBuilder().buildInt32(333)));
+    entity.getProperties().add(client.getObjectFactory().newPrimitiveProperty("primaryKey",
+        client.getObjectFactory().newPrimitiveValueBuilder().buildString(guid)));
+    final ODataEntityCreateRequest<ODataEntity> reqCreate = client.getCUDRequestFactory().getEntityCreateRequest(
+        client.newURIBuilder(SERVICE_URI).appendEntitySetSegment(entitySetName).build(), entity);
+    reqCreate.setFormat(ODataFormat.JSON_NO_METADATA);
+    final ODataEntityCreateResponse<ODataEntity> responseCreate = reqCreate.execute();
+    assertEquals(201, responseCreate.getStatusCode());
+    
+    // Test an interface of read
+    ODataEntityRequest<ODataEntity> reqRead = client
+        .getRetrieveRequestFactory().getEntityRequest(client.newURIBuilder(SERVICE_URI)
       .appendEntitySetSegment(entitySetName).appendKeySegment(guid).build());
-    assertNotNull(request);
-    ODataRetrieveResponse<ODataEntity> response = request.execute();
-    assertEquals(HttpStatusCode.OK.getStatusCode(), response.getStatusCode());
-    entity = response.getBody();
+    assertNotNull(reqRead);
+    ODataRetrieveResponse<ODataEntity> responseRead = reqRead.execute();
+    assertEquals(HttpStatusCode.OK.getStatusCode(), responseRead.getStatusCode());
+    entity = responseRead.getBody();
     assertNotNull(entity);
     assertEquals(333, entity.getProperty("Priority").getValue().asPrimitive().toValue());
     assertEquals(guid, entity.getProperty("primaryKey").getValue().asPrimitive().toValue());
+    
+    // Test an interface of delete
+    final URI uri = client.newURIBuilder(SERVICE_URI)
+        .appendEntitySetSegment(entitySetName).appendKeySegment(guid).build();
+    final ODataDeleteRequest requestDelete = client.getCUDRequestFactory().getDeleteRequest(uri);
+    assertNotNull(requestDelete);
+    final ODataDeleteResponse responseDelete = requestDelete.execute();
+    assertEquals(HttpStatusCode.NO_CONTENT.getStatusCode(), responseDelete.getStatusCode());
+    // Check that the entity is really gone.
+    ODataEntityRequest<ODataEntity> checkRequest = client
+        .getRetrieveRequestFactory().getEntityRequest(client.newURIBuilder(SERVICE_URI)
+      .appendEntitySetSegment(entitySetName).appendKeySegment(guid).build());
+    try {
+      checkRequest.execute();
+      fail("Expected exception not thrown!");
+    } catch (final ODataClientErrorException e) {
+      assertEquals(HttpStatusCode.NOT_FOUND.getStatusCode(), e.getStatusLine().getStatusCode());
+    }
   }
   
   @Test

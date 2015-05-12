@@ -55,11 +55,14 @@ public class HibernateUtil {
   public static List<String> getClassesMapping() throws Exception {
     Strategy strategy=new Strategy() {
       @Override
-      public boolean write(Type type, Object value, NodeMap<OutputNode> node, Map map) throws Exception 
-        { return false; }
+      public boolean write(Type type, Object value, NodeMap<OutputNode> node, Map map) throws Exception{ 
+        return false; 
+      }
+
       @Override
-      public Value read(Type type, NodeMap<InputNode> node, Map map)throws Exception 
-        { return null; }
+      public Value read(Type type, NodeMap<InputNode> node, Map map)throws Exception{ 
+        return null; 
+      }
     };
     
     Serializer serializer = new Persister(strategy);

@@ -44,7 +44,9 @@ public class Шина  implements java.io.Serializable {
     public Шина(String primaryKey) {
         this.primaryKey = primaryKey;
     }
-    public Шина(String primaryKey, String interopАдрес, Date createTime, String creator, Date editTime, String editor, String наименование, String ид, String адрес, String dnsIdentity, Set<Подписка> подпискаs, Set<Сообщение> сообщениеs) {
+    public Шина(String primaryKey, String interopАдрес, Date createTime, String creator, Date editTime,
+        String editor, String наименование, String ид, String адрес, String dnsIdentity,
+        Set<Подписка> подпискаs, Set<Сообщение> сообщениеs) {
        this.primaryKey = primaryKey;
        this.interopАдрес = interopАдрес;
        this.createTime = createTime;

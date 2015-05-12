@@ -43,7 +43,8 @@ public class Клиент  implements java.io.Serializable {
     public Клиент(String primaryKey) {
         this.primaryKey = primaryKey;
     }
-    public Клиент(String primaryKey, String наименование, String ид, String адрес, String dnsIdentity, Date createTime, String creator, Date editTime, String editor, Set<Сообщение> сообщениеs, Set<Подписка> подпискаs) {
+    public Клиент(String primaryKey, String наименование, String ид, String адрес, String dnsIdentity, Date createTime, 
+        String creator, Date editTime, String editor, Set<Сообщение> сообщениеs, Set<Подписка> подпискаs) {
        this.primaryKey = primaryKey;
        this.наименование = наименование;
        this.ид = ид;

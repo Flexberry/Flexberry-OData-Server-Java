@@ -42,7 +42,8 @@ public class ТипСообщения  implements java.io.Serializable {
     public ТипСообщения(String primaryKey) {
         this.primaryKey = primaryKey;
     }
-    public ТипСообщения(String primaryKey, String наименование, String ид, String комментарий, Date createTime, String creator, Date editTime, String editor, Set<Сообщение> сообщениеs, Set<Подписка> подпискаs) {
+    public ТипСообщения(String primaryKey, String наименование, String ид, String комментарий, Date createTime,
+        String creator, Date editTime, String editor, Set<Сообщение> сообщениеs, Set<Подписка> подпискаs) {
        this.primaryKey = primaryKey;
        this.наименование = наименование;
        this.ид = ид;

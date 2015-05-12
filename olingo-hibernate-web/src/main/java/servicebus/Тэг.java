@@ -40,7 +40,8 @@ public class Тэг  implements java.io.Serializable {
         this.primaryKey = primaryKey;
         this.сообщение = сообщение;
     }
-    public Тэг(String primaryKey, Сообщение сообщение, String имя, String значение, Date createTime, String creator, Date editTime, String editor) {
+    public Тэг(String primaryKey, Сообщение сообщение, String имя, String значение, Date createTime,
+        String creator, Date editTime, String editor) {
        this.primaryKey = primaryKey;
        this.сообщение = сообщение;
        this.имя = имя;

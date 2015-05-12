@@ -31,7 +31,8 @@ public class OdataHibernateServlet extends HttpServlet {
 	      throws ServletException, IOException {
 	    try {
 	      HttpSession session = req.getSession(true);
-	      OdataHibernateDataProvider dataProvider = (OdataHibernateDataProvider) session.getAttribute(OdataHibernateDataProvider.class.getName());
+	      OdataHibernateDataProvider dataProvider = 
+	          (OdataHibernateDataProvider) session.getAttribute(OdataHibernateDataProvider.class.getName());
 	      //HibernateUtil.testHibernate();
 	      if (dataProvider == null) {
 	        dataProvider = new OdataHibernateDataProvider(HibernateUtil.getClassesMapping());
@@ -39,7 +40,8 @@ public class OdataHibernateServlet extends HttpServlet {
 	        LOG.info("Created new data provider.");
 	      }
 	      OData odata = OData.newInstance();
-	      ServiceMetadata edm = odata.createServiceMetadata(new OdataHibernateEdmProvider(dataProvider), new ArrayList<EdmxReference>());
+	      ServiceMetadata edm = odata.createServiceMetadata(
+	          new OdataHibernateEdmProvider(dataProvider), new ArrayList<EdmxReference>());
 	      ODataHttpHandler handler = odata.createHandler(edm);
 	      handler.register(new OdataHibernateProcessor(dataProvider));
 	      handler.process(req, resp);
