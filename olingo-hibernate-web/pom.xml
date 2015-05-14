@@ -55,7 +55,7 @@
       <scope>test</scope>
     </dependency>
 
-    
+
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
@@ -216,25 +216,25 @@
     </pluginManagement>
 
     <plugins>
-     
+
 		 <plugin>
 		    <groupId>org.apache.maven.plugins</groupId>
 		    <artifactId>maven-checkstyle-plugin</artifactId>
 		    <configuration>
-		    <!-- 
+		    <!--
 		      <goalPrefix>check</goalPrefix>
 		       -->
 		        <configLocation>src/checkstyle/config_Olingo-OData-4.0.0-beta-02.xml</configLocation>
 		            <consoleOutput>true</consoleOutput>
 		        </configuration>
- 		        
+
 		        <executions>
 		            <execution>
 		                <phase>package</phase>
 		                <goals><goal>check</goal></goals>
 		            </execution>
 		        </executions>
-		</plugin>    
+		</plugin>
     
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

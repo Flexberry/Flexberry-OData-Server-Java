@@ -8,9 +8,9 @@ package net.flexberry.services.server.processor;
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License. You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -120,7 +120,7 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
     // Now the content is serialized using the serializer.
     final ExpandOption expand = uriInfo.getExpandOption();
     final SelectOption select = uriInfo.getSelectOption();
-    
+
     EntityCollectionSerializerOptions options=EntityCollectionSerializerOptions.with()
     .contextURL(format == ODataFormat.JSON_NO_METADATA ? null :
         getContextUrl(edmEntitySet, false, expand, select, null))
@@ -128,10 +128,10 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
     .expand(expand).select(select)
     .build();
     //options.
-    
+
     //EdmElement el=edmEntitySet.getEntityType().getProperty("Timestamp");
     //edmEntitySet.getEntityType().getStructuralProperty("Timestamp").
-    
+
     InputStream serializedContent = serializer.entityCollection(edmEntitySet.getEntityType(), entitySet,options);
 
     // Finally we set the response data, headers and status code
@@ -176,7 +176,7 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
   public void createEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo,
                            ContentType requestFormat, ContentType responseFormat)
           throws ODataApplicationException, DeserializerException, SerializerException {
-    
+
     ODataDeserializer deserializer=odata.createDeserializer(ODataFormat.fromContentType(requestFormat));
     EdmEntitySet edmEntitySet = getEdmEntitySet(uriInfo.asUriInfoResource());
     Entity entity=deserializer.entity(request.getBody(), edmEntitySet.getEntityType());
@@ -186,7 +186,7 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
       throw new ODataApplicationException("OdataHibernateProcessor.createEntity: "+e.getMessage(),
           HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),Locale.ENGLISH,e);
     }
-    
+
     final ODataFormat format = ODataFormat.fromContentType(responseFormat);
     ODataSerializer serializer = odata.createSerializer(format);
     response.setContent(serializer.entity(edmEntitySet.getEntityType(), entity,
@@ -198,8 +198,6 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
     response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
     response.setHeader(HttpHeader.LOCATION,
             request.getRawBaseUri() + '/' + odata.createUriHelper().buildCanonicalURL(edmEntitySet, entity));
-    //throw new ODataApplicationException("Entity create is not supported yet.",
-    //HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ENGLISH);
   }
 
   private ContextURL getContextUrl(final EdmEntitySet entitySet, final boolean isSingleEntity,
@@ -210,24 +208,7 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
         .suffix(isSingleEntity ? Suffix.ENTITY : null)
         .build();
   }
-  
-/*
-  @Override
-  public void deleteEntity(final ODataRequest request, ODataResponse response, final UriInfo uriInfo)
-      throws ODataApplicationException {
-    blockNavigation(uriInfo);
-    final UriResourceEntitySet resourceEntitySet = (UriResourceEntitySet) uriInfo.getUriResourceParts().get(0);
-    final Entity entity = dataProvider.read(resourceEntitySet.getEntitySet(), resourceEntitySet.getKeyPredicates());
-    if (entity == null) {
-      throw new ODataApplicationException("Nothing found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
-    } else {
-      dataProvider.delete(resourceEntitySet.getEntitySet(), entity);
-      response.setStatusCode(HttpStatusCode.NO_CONTENT.getStatusCode());
-    }
-  }
-*/  
-  
-  
+
   @Override
   public void deleteEntity(final ODataRequest request, ODataResponse response, final UriInfo uriInfo)
       throws ODataApplicationException {
@@ -346,7 +327,7 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
       }
     }
   }
-  
+
   private Entity readEntityInternal(final UriInfoResource uriInfo, final EdmEntitySet entitySet)
       throws OdataHibernateDataProvider.DataProviderException {
     // This method will extract the key values and pass them to the data provider
@@ -437,24 +418,37 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
       throws ODataApplicationException {
     deleteProperty(response, uriInfo);
   }
-  
-  
-  
+
+
+
 
   @Override
   public void updateEntity(final ODataRequest request, final ODataResponse response,
                            final UriInfo uriInfo, final ContentType requestFormat,
                            final ContentType responseFormat)
           throws ODataApplicationException, DeserializerException, SerializerException {
-    throw new ODataApplicationException("Entity update is not supported yet.",
-            HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ENGLISH);
+
+
+
+    blockNavigation(uriInfo);
+    final UriResourceEntitySet resourceEntitySet = (UriResourceEntitySet) uriInfo.getUriResourceParts().get(0);
+    ODataDeserializer deserializer=odata.createDeserializer(ODataFormat.fromContentType(requestFormat));
+    Entity requestEntity=deserializer.entity(request.getBody(), resourceEntitySet.getEntitySet().getEntityType());
+    try {
+      dataProvider.update(requestEntity,resourceEntitySet.getEntitySet(), resourceEntitySet.getKeyPredicates());
+    } catch (NotFoundDataProviderException e) {
+      throw new ODataApplicationException("Nothing found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ENGLISH);
+    } catch (Exception e) {
+      throw new ODataApplicationException(e.getMessage(), 500, Locale.ENGLISH);
+    }
+    response.setStatusCode(HttpStatusCode.NO_CONTENT.getStatusCode());
   }
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
   private void blockNavigation(final UriInfo uriInfo) throws ODataApplicationException {
     final List<UriResource> parts = uriInfo.asUriInfoResource().getUriResourceParts();
     if (parts.size() > 2
@@ -494,7 +488,7 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
       }
     }
   }
-  
+
   private void deleteProperty(final ODataResponse response, final UriInfo uriInfo) throws ODataApplicationException {
     final UriInfoResource resource = uriInfo.asUriInfoResource();
     validatePath(resource);
@@ -513,7 +507,7 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
       throw new ODataApplicationException("Not nullable.", HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT);
     }
   }
-  
+
   private Property getPropertyData(final UriResourceEntitySet resourceEntitySet, final List<String> path)
       throws ODataApplicationException {
     Entity entity=null;
@@ -557,8 +551,8 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
   public void readComplexCollection(ODataRequest request,
       ODataResponse response, UriInfo uriInfo, ContentType responseFormat)
       throws ODataApplicationException, SerializerException {
-    // TODO Auto-generated method stub
-    
+    throw new ODataApplicationException("readComplexCollection",
+        HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ENGLISH);
   }
 
   @Override
@@ -566,16 +560,16 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
       ODataResponse response, UriInfo uriInfo, ContentType requestFormat,
       ContentType responseFormat) throws ODataApplicationException,
       DeserializerException, SerializerException {
-    // TODO Auto-generated method stub
-    
+    throw new ODataApplicationException("updateComplexCollection",
+        HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ENGLISH);
   }
 
   @Override
   public void readPrimitiveCollection(ODataRequest request,
       ODataResponse response, UriInfo uriInfo, ContentType responseFormat)
       throws ODataApplicationException, SerializerException {
-    // TODO Auto-generated method stub
-    
+    throw new ODataApplicationException("readPrimitiveCollection",
+        HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ENGLISH);
   }
 
   @Override
@@ -583,11 +577,12 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
       ODataResponse response, UriInfo uriInfo, ContentType requestFormat,
       ContentType responseFormat) throws ODataApplicationException,
       DeserializerException, SerializerException {
-    // TODO Auto-generated method stub
-    
+    throw new ODataApplicationException("updatePrimitiveCollection",
+        HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ENGLISH);
+
   }
 
-  
-  
-  
+
+
+
 }

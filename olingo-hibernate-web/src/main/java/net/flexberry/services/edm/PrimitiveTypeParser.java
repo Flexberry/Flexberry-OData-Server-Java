@@ -27,12 +27,12 @@ public class PrimitiveTypeParser {
   private ArrayList<Property> properties;
   private String key;
   private HashMap<String, String> methods;
-  private HashMap<String, String> columns;  
-  
+  private HashMap<String, String> columns;
+
   public PrimitiveTypeParser(String className) throws ClassNotFoundException{
     this(new FullQualifiedName(className));
   }
-  
+
   public HashMap<String, String> getMethods(){
     return methods;
   }
@@ -45,7 +45,7 @@ public class PrimitiveTypeParser {
   InvocationTargetException, NoSuchMethodException, SecurityException{
     return cl.getConstructor(new Class[0]).newInstance();
   }
-  
+
   public EntityImpl createEntity(Object obj) throws NoSuchMethodException, SecurityException, IllegalAccessException,
   IllegalArgumentException, InvocationTargetException{
     EntityImpl entity=new EntityImpl();
@@ -55,9 +55,9 @@ public class PrimitiveTypeParser {
     }
     return entity;
   }
-  
-  
-  
+
+
+
   public void invokeSetMethod(Object obj,String columnName,Object value) throws NoSuchMethodException,
   SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
     String method=getColumns().get(columnName);
@@ -72,14 +72,14 @@ public class PrimitiveTypeParser {
     Method md=cl.getMethod(method);
     return md.invoke(obj);
   }
-  
-  
-  
+
+
+
   public Class<?> getType(String columnName) throws NoSuchMethodException, SecurityException{
     String method=getColumns().get(columnName);
     return cl.getMethod(method).getReturnType();
   }
-  
+
   public PrimitiveTypeParser(FullQualifiedName fqn) throws ClassNotFoundException{
     this.fqn=fqn;
     cl = Class.forName(fqn.getFullQualifiedNameAsString());
@@ -110,7 +110,7 @@ public class PrimitiveTypeParser {
       }
     }
   }
-  
+
   public static EdmPrimitiveTypeKind mapEdmPrimitiveTypeKind(Class<?> type){
     EdmPrimitiveTypeKind edmType=null;
     if(type==Boolean.class) {
@@ -149,7 +149,7 @@ public class PrimitiveTypeParser {
     return edmType;
   }
 
-/*  
+/*
   public static Class<?> mapJavaPrimitiveType(EdmPrimitiveTypeKind edmType){
     Class<?> type=null;
     if(edmType==EdmPrimitiveTypeKind.Boolean)
@@ -185,7 +185,7 @@ public class PrimitiveTypeParser {
   }
   */
 
-  
+
   public EntityType createEntityType() throws ClassNotFoundException{
     if(!cl.isAnnotationPresent(Entity.class)) {
       return null;

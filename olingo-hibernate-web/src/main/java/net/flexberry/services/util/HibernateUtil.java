@@ -24,7 +24,7 @@ import org.simpleframework.xml.stream.OutputNode;
 
 public class HibernateUtil {
   private static org.hibernate.SessionFactory sessionFactory = null;
-  
+
   static {
       try {
               //creates the session factory from hibernate.cfg.xml
@@ -37,7 +37,7 @@ public class HibernateUtil {
   public static org.hibernate.SessionFactory getSessionFactory() {
       return sessionFactory;
   }
-  
+
   public static void testHibernate() {
     List objs=null;
     Session session = null;
@@ -48,23 +48,23 @@ public class HibernateUtil {
         if (session != null && session.isOpen()) {
           session.close();
         }
-    } 
+    }
   }
-  
-  
+
+
   public static List<String> getClassesMapping() throws Exception {
     Strategy strategy=new Strategy() {
       @Override
-      public boolean write(Type type, Object value, NodeMap<OutputNode> node, Map map) throws Exception{ 
-        return false; 
+      public boolean write(Type type, Object value, NodeMap<OutputNode> node, Map map) throws Exception{
+        return false;
       }
 
       @Override
-      public Value read(Type type, NodeMap<InputNode> node, Map map)throws Exception{ 
-        return null; 
+      public Value read(Type type, NodeMap<InputNode> node, Map map)throws Exception{
+        return null;
       }
     };
-    
+
     Serializer serializer = new Persister(strategy);
     URL fileUrl = HibernateUtil.class.getClassLoader().getResource("hibernate.cfg.xml");
     HibernateConfiguration conf = serializer.read(HibernateConfiguration.class, fileUrl.openStream());
@@ -74,9 +74,9 @@ public class HibernateUtil {
     }
     return list;
 }
-  
-  
-  
+
+
+
   @Root(strict=false,name="hibernate-configuration")
   public static class HibernateConfiguration {
     @ElementList(inline=true, required=false)
@@ -90,28 +90,29 @@ public class HibernateUtil {
 
     @ElementList(entry="mapping", inline=true, required=false)
     private List<Mapping> mappings;
-    
+
   }
 
   @Root(strict=false)
   public static class Property {
     @Attribute(name="name")
-    public String name;            
+    public String name;
     @Text
-    public String text;  
+    public String text;
   }
-  
+
   @Root(strict=false)
   public static class Mapping {
     @Attribute(name="class")
-    public String className;            
+    public String className;
   }
 
-  
-  
-  
+
+
+
   public class MappingConverter implements Converter<Mapping> {
 
+    @Override
     public Mapping read(InputNode node) {
        //String name = node.getAttribute("name");
        //String value = node.getAttribute("value");
@@ -119,6 +120,7 @@ public class HibernateUtil {
        return new Mapping();
     }
 
+    @Override
     public void write(OutputNode node, Mapping external) {
        //String name = external.getName();
        //String value = external.getValue();
@@ -126,15 +128,15 @@ public class HibernateUtil {
        //node.setAttribute("name", name);
        //node.setAttribute("value", value);
     }
- }  
-  
-  
-  
-  
-  
-  
-  
-  
+ }
+
+
+
+
+
+
+
+
 }
 
 
