@@ -39,7 +39,6 @@
 		<url-pattern>/cars.svc/*</url-pattern>
 	</servlet-mapping>
 
-
   <servlet>
     <servlet-name>OdataHibernateServlet</servlet-name>
     <servlet-class>net.flexberry.services.server.OdataHibernateServlet</servlet-class>
@@ -51,7 +50,19 @@
     <url-pattern>/hibernate.svc/*</url-pattern>
   </servlet-mapping>
 
+<!--
+  <filter> 
+		<filter-name>LoggerFilter</filter-name>
+		<filter-class>net.flexberry.services.server.LoggerFilter</filter-class>
+		<init-param>
+			<param-name>active</param-name>
+			<param-value>true</param-true>
+		</init-param>
+  </filter>
 
-
-
+  <filter-mapping>
+	  <filter-name>LoggerFilter</filter-name>
+	  <servlet-name>OdataHibernateServlet</servlet-name>
+  </filter-mapping>
+ -->
 </web-app>

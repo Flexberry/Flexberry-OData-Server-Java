@@ -19,7 +19,9 @@ package net.flexberry.services.server.processor;
  * under the License.
  */
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Collections;
@@ -177,27 +179,33 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
                            ContentType requestFormat, ContentType responseFormat)
           throws ODataApplicationException, DeserializerException, SerializerException {
 
-    ODataDeserializer deserializer=odata.createDeserializer(ODataFormat.fromContentType(requestFormat));
-    EdmEntitySet edmEntitySet = getEdmEntitySet(uriInfo.asUriInfoResource());
-    Entity entity=deserializer.entity(request.getBody(), edmEntitySet.getEntityType());
     try {
-      dataProvider.create(entity);
-    } catch (Exception e) {
-      throw new ODataApplicationException("OdataHibernateProcessor.createEntity: "+e.getMessage(),
-          HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),Locale.ENGLISH,e);
-    }
+      ODataDeserializer deserializer=odata.createDeserializer(ODataFormat.fromContentType(requestFormat));
+      EdmEntitySet edmEntitySet = getEdmEntitySet(uriInfo.asUriInfoResource());
+      Entity entity=deserializer.entity(request.getBody(), edmEntitySet.getEntityType());
+      try {
+        dataProvider.create(entity);
+      } catch (Exception e) {
+        throw new ODataApplicationException("dataProvider.create: "+e.getMessage(),
+            HttpStatusCode.BAD_REQUEST.getStatusCode(),Locale.ENGLISH,e);
+      }
 
-    final ODataFormat format = ODataFormat.fromContentType(responseFormat);
-    ODataSerializer serializer = odata.createSerializer(format);
-    response.setContent(serializer.entity(edmEntitySet.getEntityType(), entity,
-            EntitySerializerOptions.with()
-                    .contextURL(format == ODataFormat.JSON_NO_METADATA ? null :
-                            getContextUrl(edmEntitySet, true, null, null))
-                    .build()));
-    response.setStatusCode(HttpStatusCode.CREATED.getStatusCode());
-    response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
-    response.setHeader(HttpHeader.LOCATION,
-            request.getRawBaseUri() + '/' + odata.createUriHelper().buildCanonicalURL(edmEntitySet, entity));
+      final ODataFormat format = ODataFormat.fromContentType(responseFormat);
+      ODataSerializer serializer = odata.createSerializer(format);
+      response.setContent(serializer.entity(edmEntitySet.getEntityType(), entity,
+              EntitySerializerOptions.with()
+                      .contextURL(format == ODataFormat.JSON_NO_METADATA ? null :
+                              getContextUrl(edmEntitySet, true, null, null))
+                      .build()));
+      response.setStatusCode(HttpStatusCode.CREATED.getStatusCode());
+      response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
+      response.setHeader(HttpHeader.LOCATION,
+              request.getRawBaseUri() + '/' + odata.createUriHelper().buildCanonicalURL(edmEntitySet, entity));
+      
+    } catch (Exception e) {
+      throw new ODataApplicationException("createEntity: "+e.getMessage(),
+          HttpStatusCode.BAD_REQUEST.getStatusCode(),Locale.ENGLISH);
+    }
   }
 
   private ContextURL getContextUrl(final EdmEntitySet entitySet, final boolean isSingleEntity,
@@ -285,7 +293,7 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
       entity = readEntityInternal(uriInfo.asUriInfoResource(), edmEntitySet);
     } catch (DataProviderException e) {
       throw new ODataApplicationException(e.getMessage(),
-              HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ENGLISH);
+              HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ENGLISH);
     }
 
     if (entity == null) {
@@ -514,7 +522,7 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
     try {
       entity = dataProvider.read(resourceEntitySet.getEntitySet(), resourceEntitySet.getKeyPredicates());
     } catch (Exception e) {
-      throw new ODataApplicationException(" dataProvider.read ",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),
+      throw new ODataApplicationException(" dataProvider.read ",HttpStatusCode.BAD_REQUEST.getStatusCode(),
           Locale.ROOT,e);
     }
     if (entity == null) {

@@ -291,7 +291,7 @@ public class TomcatTestServer {
 
     private Context baseContext = null;
 
-    private Context getContext() {
+    public Context getContext() {
       if (baseContext == null) {
         baseContext = tomcat.addContext("/", baseDir.getAbsolutePath());
       }

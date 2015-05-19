@@ -11,12 +11,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.flexberry.services.edm.PrimitiveTypeParser;
+import net.flexberry.services.edm.TypeParser;
 import net.flexberry.services.util.HibernateUtil;
 
 import org.apache.olingo.commons.api.ODataException;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntitySet;
+import org.apache.olingo.commons.api.data.Link;
 import org.apache.olingo.commons.api.data.Property;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
@@ -24,7 +25,12 @@ import org.apache.olingo.commons.api.edm.EdmPrimitiveType;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeException;
 import org.apache.olingo.commons.api.edm.EdmProperty;
 import org.apache.olingo.commons.core.data.EntitySetImpl;
+import org.apache.olingo.server.api.ServiceMetadata;
+import org.apache.olingo.server.api.uri.UriInfo;
 import org.apache.olingo.server.api.uri.UriParameter;
+import org.apache.olingo.server.api.uri.UriResourceEntitySet;
+import org.apache.olingo.server.core.uri.parser.Parser;
+import org.apache.olingo.server.core.uri.parser.UriParserException;
 import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.criterion.Restrictions;
@@ -35,7 +41,12 @@ public class OdataHibernateDataProvider {
   private Map<String, Class<?>> mapEntitySet=new HashMap<String, Class<?>>();
   private List<String> classesNames;
   private String namespace;
-
+  private ServiceMetadata serviceMetadata;
+  
+  public void setServiceMetadata(ServiceMetadata edm){
+    this.serviceMetadata=edm;
+  }
+  
   public List<String> getClassesNames(){
     return classesNames;
   }
@@ -106,7 +117,7 @@ public class OdataHibernateDataProvider {
     try{
       session = HibernateUtil.getSessionFactory().openSession();
       Class<?> clazz=mapEntitySet.get(entitySetName);
-      PrimitiveTypeParser parser=new PrimitiveTypeParser(clazz.getCanonicalName());
+      TypeParser parser=new TypeParser(clazz.getCanonicalName());
       EntitySet entitySet = new EntitySetImpl();
       List<Entity> entities=entitySet.getEntities();
       @SuppressWarnings("rawtypes")
@@ -124,8 +135,9 @@ public class OdataHibernateDataProvider {
   }
 
   public void create(Entity entity) throws ClassNotFoundException, NoSuchMethodException, SecurityException,
-  InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
-    PrimitiveTypeParser parser=new PrimitiveTypeParser(entity.getType());
+  InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
+  UriParserException, DataProviderException{
+    TypeParser parser=new TypeParser(entity.getType());
     Object obj=parser.createObject();
     for (org.apache.olingo.commons.api.data.Property prop : entity.getProperties()) {
       parser.invokeSetMethod(obj,prop.getName(),prop.getValue());
@@ -134,6 +146,15 @@ public class OdataHibernateDataProvider {
     try {
         session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
+        for (Link link : entity.getNavigationBindings()) {
+          UriInfo uriInfo = new Parser().parseUri(link.getBindingLink(), null, null,serviceMetadata.getEdm());
+          final UriResourceEntitySet resourceEntitySet = (UriResourceEntitySet) uriInfo.getUriResourceParts().get(0);
+          List objs = findObjects(session,resourceEntitySet.getEntitySet().getEntityType(),
+              resourceEntitySet.getKeyPredicates());
+          if(objs.size()>0) {
+            parser.invokeSetMethod(obj,link.getTitle(),objs.get(0));
+          }
+        }
         session.save(obj);
         session.getTransaction().commit();
     } finally {
@@ -148,13 +169,13 @@ public class OdataHibernateDataProvider {
   private List findObjects(Session session,final EdmEntityType entityType,final List<UriParameter> keys)
       throws ClassNotFoundException, InstantiationException, IllegalAccessException, IllegalArgumentException,
       InvocationTargetException, NoSuchMethodException, SecurityException, DataProviderException{
-    final PrimitiveTypeParser parser=new PrimitiveTypeParser(entityType.getFullQualifiedName());
+    final TypeParser parser=new TypeParser(entityType.getFullQualifiedName());
     final Object obj=parser.createObject();
     Criteria criteria=session.createCriteria(obj.getClass());
     for (final UriParameter key : keys) {
       final EdmProperty property = (EdmProperty) entityType.getProperty(key.getName());
       final EdmPrimitiveType type = (EdmPrimitiveType) property.getType();
-      final Class<?> returnType=parser.getType(key.getName());
+      final Class<?> returnType=parser.getColumnType(key.getName());
       try {
       final Object keyValue = type.valueOfString(type.fromUriLiteral(key.getText()),
         property.isNullable(), property.getMaxLength(), property.getPrecision(), property.getScale(),
@@ -175,7 +196,7 @@ public class OdataHibernateDataProvider {
   ClassNotFoundException, DataProviderException, InstantiationException, IllegalAccessException,
   IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException{
     final EdmEntityType entityType = edmEntitySet.getEntityType();
-    final PrimitiveTypeParser parser=new PrimitiveTypeParser(entityType.getFullQualifiedName());
+    final TypeParser parser=new TypeParser(entityType.getFullQualifiedName());
     Session session = null;
     try{
       session = HibernateUtil.getSessionFactory().openSession();
@@ -228,7 +249,7 @@ public class OdataHibernateDataProvider {
       IllegalAccessException, IllegalArgumentException, InvocationTargetException, InstantiationException,
       EdmPrimitiveTypeException {
     final EdmEntityType entityType = edmEntitySet.getEntityType();
-    final PrimitiveTypeParser parser=new PrimitiveTypeParser(entityType.getFullQualifiedName());
+    final TypeParser parser=new TypeParser(entityType.getFullQualifiedName());
     Session session = null;
     try{
       session = HibernateUtil.getSessionFactory().openSession();

@@ -26,9 +26,15 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.UUID;
 
+import javax.servlet.http.HttpServlet;
+
+import net.flexberry.services.client.TomcatTestServer.TestServerBuilder;
+import net.flexberry.services.server.LoggerFilter;
 import net.flexberry.services.server.OdataHibernateServlet;
 
 import org.apache.catalina.LifecycleException;
+import org.apache.catalina.deploy.FilterDef;
+import org.apache.catalina.deploy.FilterMap;
 import org.apache.olingo.client.api.communication.request.retrieve.XMLMetadataRequest;
 import org.apache.olingo.client.api.communication.response.ODataRetrieveResponse;
 import org.apache.olingo.client.api.edm.xml.EntityContainer;
@@ -44,7 +50,13 @@ import org.slf4j.LoggerFactory;
 
 public abstract class AbstractBaseTestITCase {
 
-  protected static final String SERVICE_URI = "http://localhost:9080/olingo-hibernate-web/hibernate.svc";
+  protected static final int SERVICE_PORT=9080;
+  protected static final String SERVLET_PATH = "/olingo-hibernate-web/hibernate.svc";
+  protected static final String SERVICE_URI = "http://localhost:"+SERVICE_PORT+SERVLET_PATH;
+  protected static final String FILTER_NAME="LoggerFilter";
+  protected static final String FILTER_CLASS=LoggerFilter.class.getName();
+  protected static final String SERVLET_NAME="OdataHibernateServlet";
+  protected static final String SERVLET_CLASS=OdataHibernateServlet.class.getName();
 
   /**
    * Logger.
@@ -85,11 +97,20 @@ public abstract class AbstractBaseTestITCase {
   @BeforeClass
   public static void init()
       throws LifecycleException, IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {
-    TomcatTestServer.init(9080)
-        .addServlet(OdataHibernateServlet.class, "/olingo-hibernate-web/hibernate.svc/*")
-        .addWebApp(false)
-        .start()
-        ;
+    HttpServlet httpServlet = (HttpServlet)Class.forName(SERVLET_CLASS).newInstance();
+    TestServerBuilder builder=TomcatTestServer.init(SERVICE_PORT)
+        .addServlet(httpServlet,SERVLET_NAME, SERVLET_PATH+"/*")
+        .addWebApp(false);
+    FilterDef filterDef=new FilterDef();
+    filterDef.setFilterName(FILTER_NAME);
+    filterDef.setFilterClass(FILTER_CLASS);
+    filterDef.getParameterMap().put("active", "true");
+    builder.getContext().addFilterDef(filterDef);
+    FilterMap filterMap=new FilterMap();
+    filterMap.setFilterName(FILTER_NAME);
+    filterMap.addServletName(SERVLET_NAME);
+    builder.getContext().addFilterMap(filterMap);
+    builder.start();
   }
 
 }

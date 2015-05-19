@@ -21,7 +21,7 @@ package net.flexberry.services.server.edmprovider;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.flexberry.services.edm.PrimitiveTypeParser;
+import net.flexberry.services.edm.TypeParser;
 import net.flexberry.services.server.data.OdataHibernateDataProvider;
 
 import org.apache.olingo.commons.api.ODataException;
@@ -48,16 +48,9 @@ public class OdataHibernateEdmProvider extends EdmProvider {
   @Override
   public EntityType getEntityType(final FullQualifiedName entityTypeName) throws ODataException {
     try {
-      PrimitiveTypeParser parser=new PrimitiveTypeParser(entityTypeName);
-      EntityType entityType=parser.createEntityType();
-      /*
-      entityType.setNavigationProperties(Arrays.asList(
-          new NavigationProperty().setName("Manufacturer").setType(ET_MANUFACTURER)
-          )
-      );
-      */
-      return entityType;
-    } catch (ClassNotFoundException e) {
+      TypeParser parser=new TypeParser(entityTypeName);
+      return parser.createEntityType();
+    } catch (ClassNotFoundException | NoSuchMethodException | SecurityException e) {
       throw new ODataException(e);
     }
   }

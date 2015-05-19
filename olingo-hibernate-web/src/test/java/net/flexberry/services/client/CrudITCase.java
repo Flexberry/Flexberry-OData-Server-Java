@@ -37,13 +37,95 @@ import org.apache.olingo.client.api.communication.response.ODataEntityCreateResp
 import org.apache.olingo.client.api.communication.response.ODataEntityUpdateResponse;
 import org.apache.olingo.client.api.communication.response.ODataRetrieveResponse;
 import org.apache.olingo.client.api.v4.ODataClient;
+import org.apache.olingo.commons.api.domain.ODataError;
 import org.apache.olingo.commons.api.domain.v4.ODataEntity;
+import org.apache.olingo.commons.api.domain.v4.ODataLink;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.apache.olingo.commons.api.format.ODataFormat;
 import org.apache.olingo.commons.api.http.HttpStatusCode;
 import org.junit.Test;
 
 public class CrudITCase extends AbstractBaseTestITCase {
+
+
+  @Test
+  public void navigationProperty() {
+    try {
+      final ODataClient client = getClient();
+      HashMap<String, String> map=getMapEntitySet();
+      String entityType1="servicebus.Stormfiltersetting";
+      assertTrue(map.containsKey(entityType1));
+      String entitySetName1=map.get(entityType1);
+      String guid1=getGUID();
+      ODataEntity entity1 = client.getObjectFactory().
+          newEntity(new FullQualifiedName(entityType1));
+      entity1.getProperties().add(client.getObjectFactory().newPrimitiveProperty("Name",
+          client.getObjectFactory().newPrimitiveValueBuilder().buildString("Name 01")));
+      entity1.getProperties().add(client.getObjectFactory().newPrimitiveProperty("DataObjectView",
+          client.getObjectFactory().newPrimitiveValueBuilder().buildString("DataObjectView 01")));
+      entity1.getProperties().add(client.getObjectFactory().newPrimitiveProperty("primaryKey",
+          client.getObjectFactory().newPrimitiveValueBuilder().buildString(guid1)));
+      final ODataEntityCreateRequest<ODataEntity> reqCreate1 = client.getCUDRequestFactory().getEntityCreateRequest(
+          client.newURIBuilder(SERVICE_URI).appendEntitySetSegment(entitySetName1).build(), entity1);
+      reqCreate1.setFormat(ODataFormat.JSON);
+      final ODataEntityCreateResponse<ODataEntity> responseCreate1 = reqCreate1.execute();
+      assertEquals(201, responseCreate1.getStatusCode());
+
+      URI entity1Ref = client.newURIBuilder("")
+          .appendEntitySetSegment(entitySetName1)
+          .appendKeySegment(guid1)
+          .build();
+
+
+      String entityType2="servicebus.Stormfilterlookup";
+      assertTrue(map.containsKey(entityType2));
+      String entitySetName2=map.get(entityType2);
+      String guid2=getGUID();
+      ODataEntity entity2 = client.getObjectFactory().
+          newEntity(new FullQualifiedName(entityType2));
+      entity2.getProperties().add(client.getObjectFactory().newPrimitiveProperty("DataObjectType",
+          client.getObjectFactory().newPrimitiveValueBuilder().buildString("DataObjectType 01")));
+      entity2.getProperties().add(client.getObjectFactory().newPrimitiveProperty("primaryKey",
+          client.getObjectFactory().newPrimitiveValueBuilder().buildString(guid2)));
+
+      ODataLink filterSetting_m0 = client.getObjectFactory()
+          .newEntityNavigationLink("FilterSetting_m0", entity1Ref);
+      entity2.getNavigationLinks().add(filterSetting_m0);
+      //entity2.getAssociationLinks().add(filterSetting_m0);
+
+      final ODataEntityCreateRequest<ODataEntity> reqCreate2 = client.getCUDRequestFactory().getEntityCreateRequest(
+          client.newURIBuilder(SERVICE_URI).appendEntitySetSegment(entitySetName2).build(), entity2);
+      reqCreate2.setFormat(ODataFormat.JSON);
+      final ODataEntityCreateResponse<ODataEntity> responseCreate2 = reqCreate2.execute();
+      assertEquals(201, responseCreate2.getStatusCode());
+    } catch (ODataClientErrorException e) {
+      fail(e.getMessage());
+    }catch (Exception e) {
+      fail(e.getMessage());
+    }
+  }
+
+  public void navigationProperty2() {
+    final ODataClient client = getClient();
+    HashMap<String, String> map=getMapEntitySet();
+
+    String entityType3="servicebus.Клиент";
+    assertTrue(map.containsKey(entityType3));
+    String entitySetName3=map.get(entityType3);
+    String guid3=getGUID();
+    ODataEntity entity3 = client.getObjectFactory().
+        newEntity(new FullQualifiedName(entityType3));
+    entity3.getProperties().add(client.getObjectFactory().newPrimitiveProperty("Наименование",
+        client.getObjectFactory().newPrimitiveValueBuilder().buildString("Наименование 01")));
+    entity3.getProperties().add(client.getObjectFactory().newPrimitiveProperty("primaryKey",
+        client.getObjectFactory().newPrimitiveValueBuilder().buildString(guid3)));
+    final ODataEntityCreateRequest<ODataEntity> reqCreate3 = client.getCUDRequestFactory().getEntityCreateRequest(
+        client.newURIBuilder(SERVICE_URI).appendEntitySetSegment(entitySetName3).build(), entity3);
+    reqCreate3.setFormat(ODataFormat.JSON_NO_METADATA);
+    final ODataEntityCreateResponse<ODataEntity> responseCreate3 = reqCreate3.execute();
+    assertEquals(201, responseCreate3.getStatusCode());
+
+  }
 
   @Test
   public void crud() {

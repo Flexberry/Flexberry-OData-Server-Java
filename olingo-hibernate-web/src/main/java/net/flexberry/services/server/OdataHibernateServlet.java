@@ -42,6 +42,7 @@ public class OdataHibernateServlet extends HttpServlet {
 	      OData odata = OData.newInstance();
 	      ServiceMetadata edm = odata.createServiceMetadata(
 	          new OdataHibernateEdmProvider(dataProvider), new ArrayList<EdmxReference>());
+	      dataProvider.setServiceMetadata(edm);
 	      ODataHttpHandler handler = odata.createHandler(edm);
 	      handler.register(new OdataHibernateProcessor(dataProvider));
 	      handler.process(req, resp);
