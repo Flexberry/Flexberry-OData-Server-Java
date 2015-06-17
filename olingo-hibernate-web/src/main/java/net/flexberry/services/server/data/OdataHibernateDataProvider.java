@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import net.flexberry.services.edm.TypeParser;
+import net.flexberry.services.server.edmprovider.OdataHibernateEdmProvider;
 import net.flexberry.services.util.HibernateUtil;
 
 import org.apache.olingo.commons.api.ODataException;
@@ -24,11 +26,17 @@ import org.apache.olingo.commons.api.edm.EdmEntityType;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveType;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeException;
 import org.apache.olingo.commons.api.edm.EdmProperty;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.apache.olingo.commons.core.data.EntitySetImpl;
 import org.apache.olingo.server.api.ServiceMetadata;
 import org.apache.olingo.server.api.uri.UriInfo;
+import org.apache.olingo.server.api.uri.UriInfoResource;
 import org.apache.olingo.server.api.uri.UriParameter;
+import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
+import org.apache.olingo.server.api.uri.UriResourceKind;
+import org.apache.olingo.server.api.uri.UriResourceNavigation;
+import org.apache.olingo.server.core.edm.provider.EdmEntitySetImpl;
 import org.apache.olingo.server.core.uri.parser.Parser;
 import org.apache.olingo.server.core.uri.parser.UriParserException;
 import org.hibernate.Criteria;
@@ -42,17 +50,58 @@ public class OdataHibernateDataProvider {
   private List<String> classesNames;
   private String namespace;
   private ServiceMetadata serviceMetadata;
-  
-  public void setServiceMetadata(ServiceMetadata edm){
-    this.serviceMetadata=edm;
+  private OdataHibernateEdmProvider edmProvider;
+
+  public void setServiceMetadata(ServiceMetadata serviceMetadata){
+    this.serviceMetadata=serviceMetadata;
   }
-  
+
+  public void setEdmProvider(OdataHibernateEdmProvider edmProvider){
+    this.edmProvider=edmProvider;
+  }
+
   public List<String> getClassesNames(){
     return classesNames;
   }
 
   public String getNamespace(){
     return namespace;
+  }
+
+  public EdmEntitySet getEdmEntitySet(Entity entity){
+    org.apache.olingo.server.api.edm.provider.EntitySet entitySet=null;
+    for (String cls : getClassesNames()) {
+      String esName=getEntitySetName(cls);
+      if (cls.equals(entity.getType())) {
+        entitySet= new org.apache.olingo.server.api.edm.provider.EntitySet()
+            .setName(esName)
+            .setType(new FullQualifiedName(cls));
+        break;
+      }
+    }
+    EdmEntitySetImpl edmEntitySet = new EdmEntitySetImpl(serviceMetadata.getEdm(),
+        serviceMetadata.getEdm().getEntityContainer(edmProvider.getContainerName()), entitySet);
+    return edmEntitySet;
+  }
+
+  public org.apache.olingo.server.api.edm.provider.EntitySet getEntitySet(String entitySetName){
+    for (String cls : getClassesNames()) {
+      String esName=getEntitySetName(cls);
+      if (esName.equals(entitySetName)) {
+        return new org.apache.olingo.server.api.edm.provider.EntitySet()
+            .setName(esName)
+            .setType(new FullQualifiedName(cls))/*
+            .setNavigationPropertyBindings(
+                Arrays.asList(
+                    new NavigationPropertyBinding().setPath("Manufacturer").setTarget(
+                        new Target().setTargetName(ES_MANUFACTURER_NAME).setEntityContainer(CONTAINER_FQN)))) */;
+      }
+
+    }
+
+
+
+    return null;
   }
 
   public String getEntitySetName0(String cls){
@@ -134,6 +183,16 @@ public class OdataHibernateDataProvider {
     }
   }
 
+  private UriResourceKind getKind(UriInfoResource uriInfo){
+    final int lastPathSegmentIndex = uriInfo.getUriResourceParts().size() - 1;
+    final UriResource lastPathSegment = uriInfo.getUriResourceParts().get(lastPathSegmentIndex);
+    return lastPathSegment.getKind();
+  }
+
+  public UriInfo parseUri(String link) throws UriParserException{
+    return new Parser().parseUri(link, null, null,serviceMetadata.getEdm());
+  }
+
   public void create(Entity entity) throws ClassNotFoundException, NoSuchMethodException, SecurityException,
   InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
   UriParserException, DataProviderException{
@@ -147,8 +206,9 @@ public class OdataHibernateDataProvider {
         session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
         for (Link link : entity.getNavigationBindings()) {
-          UriInfo uriInfo = new Parser().parseUri(link.getBindingLink(), null, null,serviceMetadata.getEdm());
+          UriInfo uriInfo = parseUri(link.getBindingLink());
           final UriResourceEntitySet resourceEntitySet = (UriResourceEntitySet) uriInfo.getUriResourceParts().get(0);
+          @SuppressWarnings("rawtypes")
           List objs = findObjects(session,resourceEntitySet.getEntitySet().getEntityType(),
               resourceEntitySet.getKeyPredicates());
           if(objs.size()>0) {
@@ -194,7 +254,7 @@ public class OdataHibernateDataProvider {
 
   public void update(Entity entity,final EdmEntitySet edmEntitySet, final List<UriParameter> keys) throws
   ClassNotFoundException, DataProviderException, InstantiationException, IllegalAccessException,
-  IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException{
+  IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, UriParserException{
     final EdmEntityType entityType = edmEntitySet.getEntityType();
     final TypeParser parser=new TypeParser(entityType.getFullQualifiedName());
     Session session = null;
@@ -210,6 +270,15 @@ public class OdataHibernateDataProvider {
         parser.invokeSetMethod(object, prop.getName(), prop.getValue());
       }
       session.beginTransaction();
+      for (Link link : entity.getNavigationBindings()) {
+        UriInfo uriInfo = parseUri(link.getBindingLink());
+        final UriResourceEntitySet resourceEntitySet = (UriResourceEntitySet) uriInfo.getUriResourceParts().get(0);
+        objs = findObjects(session,resourceEntitySet.getEntitySet().getEntityType(),
+            resourceEntitySet.getKeyPredicates());
+        if(objs.size()>0) {
+          parser.invokeSetMethod(object,link.getTitle(),objs.get(0));
+        }
+      }
       session.update(object);
       session.getTransaction().commit();
     }finally {
@@ -244,26 +313,49 @@ public class OdataHibernateDataProvider {
   }
 
 
-  public Entity read(final EdmEntitySet edmEntitySet, final List<UriParameter> keys)
-      throws DataProviderException, ClassNotFoundException, NoSuchMethodException, SecurityException,
-      IllegalAccessException, IllegalArgumentException, InvocationTargetException, InstantiationException,
-      EdmPrimitiveTypeException {
-    final EdmEntityType entityType = edmEntitySet.getEntityType();
-    final TypeParser parser=new TypeParser(entityType.getFullQualifiedName());
-    Session session = null;
-    try{
-      session = HibernateUtil.getSessionFactory().openSession();
-      List objs = findObjects(session,entityType,keys);
-      if(objs.size()==0) {
-        throw new NotFoundDataProviderException("Object not found!");
-      }
-      return parser.createEntity(objs.get(0));
+  @SuppressWarnings("rawtypes")
+  public Entity read(UriInfoResource uriInfo, final EdmEntitySet edmEntitySet)
+  //(final EdmEntitySet edmEntitySet, final List<UriParameter> keys)
+      throws DataProviderException{
+    try {
+      UriResourceEntitySet resourceEntitySet = (UriResourceEntitySet) uriInfo.getUriResourceParts().get(0);
+      EdmEntityType entityType = edmEntitySet.getEntityType();
 
-    }finally {
-      if (session != null && session.isOpen()) {
-          session.close();
+      final List<UriParameter> keys=resourceEntitySet.getKeyPredicates();
+
+      Session session = null;
+      try{
+        session = HibernateUtil.getSessionFactory().openSession();
+        List objs = findObjects(session,entityType,keys);
+        if(objs.size()==0) {
+          throw new NotFoundDataProviderException("Object not found!");
+        }
+        TypeParser parser=new TypeParser(entityType.getFullQualifiedName());
+        if(getKind(uriInfo)==UriResourceKind.navigationProperty) {
+          UriResourceNavigation resourceNavigation = (UriResourceNavigation) uriInfo.getUriResourceParts().get(1);
+          String column=resourceNavigation.getProperty().getName();
+          Object obj=parser.invokeGetMethod(objs.get(0),column);
+          parser=new TypeParser(parser.getJoinColumnType(column).getCanonicalName());
+          Serializable identifier = session.getIdentifier(obj);
+          String entityName = session.getEntityName(obj);
+          session.evict(obj);
+          obj=session.get(entityName, identifier);
+          return parser.createEntity(obj);
+        }
+        return parser.createEntity(objs.get(0));
+
+      }finally {
+        if (session != null && session.isOpen()) {
+            session.close();
+        }
       }
+    } catch (NotFoundDataProviderException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new DataProviderException(e.getMessage());
     }
+
+
   }
 
   public static class DataProviderException extends ODataException {

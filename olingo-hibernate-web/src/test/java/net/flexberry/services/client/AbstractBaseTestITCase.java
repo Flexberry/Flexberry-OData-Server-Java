@@ -1,4 +1,4 @@
-/* 
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -18,12 +18,7 @@
  */
 package net.flexberry.services.client;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServlet;
@@ -35,15 +30,9 @@ import net.flexberry.services.server.OdataHibernateServlet;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.deploy.FilterDef;
 import org.apache.catalina.deploy.FilterMap;
-import org.apache.olingo.client.api.communication.request.retrieve.XMLMetadataRequest;
-import org.apache.olingo.client.api.communication.response.ODataRetrieveResponse;
-import org.apache.olingo.client.api.edm.xml.EntityContainer;
-import org.apache.olingo.client.api.edm.xml.EntitySet;
-import org.apache.olingo.client.api.edm.xml.XMLMetadata;
 import org.apache.olingo.client.api.v4.ODataClient;
 import org.apache.olingo.client.core.ODataClientFactory;
 import org.apache.olingo.commons.api.format.ODataFormat;
-import org.apache.olingo.commons.api.http.HttpStatusCode;
 import org.junit.BeforeClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,33 +56,12 @@ public abstract class AbstractBaseTestITCase {
     return UUID.randomUUID().toString().toUpperCase();
   }
 
-  
   protected ODataClient getClient() {
     ODataClient odata = ODataClientFactory.getV4();
     odata.getConfiguration().setDefaultPubFormat(ODataFormat.JSON);
     return odata;
   }
-  
-  protected HashMap<String, String> getMapEntitySet(){
-    XMLMetadataRequest request = getClient().getRetrieveRequestFactory().getXMLMetadataRequest(SERVICE_URI);
-    assertNotNull(request);
-    ODataRetrieveResponse<XMLMetadata> response = request.execute();
-    assertEquals(HttpStatusCode.OK.getStatusCode(), response.getStatusCode());
-    XMLMetadata xmlMetadata = response.getBody();
-    assertNotNull(xmlMetadata);
-    assertTrue(xmlMetadata instanceof org.apache.olingo.client.api.edm.xml.v4.XMLMetadata);
-    assertEquals(1, xmlMetadata.getSchemas().size());
-    assertEquals("servicebus", xmlMetadata.getSchema("servicebus").getNamespace());
-    HashMap<String, String> map=new HashMap<String, String>();
-    EntityContainer container=xmlMetadata.getSchema("servicebus").getEntityContainer("Container");
-    assertNotNull(container);
-    for (EntitySet entitySet : container.getEntitySets()) {
-      map.put(entitySet.getEntityType(), entitySet.getName());
-    }
-    return map;
-  }
-  
-  
+
   @BeforeClass
   public static void init()
       throws LifecycleException, IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {

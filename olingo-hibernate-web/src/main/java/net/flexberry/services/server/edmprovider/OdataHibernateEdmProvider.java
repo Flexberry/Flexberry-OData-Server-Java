@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License. You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -40,9 +40,13 @@ public class OdataHibernateEdmProvider extends EdmProvider {
   private FullQualifiedName container_fqn;// = new FullQualifiedName(NAMESPACE, CONTAINER_NAME);
   private OdataHibernateDataProvider dataProvider;
   public OdataHibernateEdmProvider(OdataHibernateDataProvider dataProvider){
-    
+
     this.dataProvider=dataProvider;
     container_fqn = new FullQualifiedName(dataProvider.getNamespace(), CONTAINER_NAME);
+  }
+
+  public FullQualifiedName getContainerName(){
+    return container_fqn;
   }
   
   @Override
@@ -68,26 +72,12 @@ public class OdataHibernateEdmProvider extends EdmProvider {
     return null;
   }
 */
-  
+
   @Override
   public EntitySet getEntitySet(final FullQualifiedName entityContainer, final String entitySetName)
       throws ODataException {
     if (container_fqn.equals(entityContainer)) {
-      for (String cls : dataProvider.getClassesNames()) {
-        String esName=dataProvider.getEntitySetName(cls);
-        if (esName.equals(entitySetName)) {
-          return new EntitySet()
-              .setName(esName)
-              .setType(new FullQualifiedName(cls))/*
-              .setNavigationPropertyBindings(
-                  Arrays.asList(
-                      new NavigationPropertyBinding().setPath("Manufacturer").setTarget(
-                          new Target().setTargetName(ES_MANUFACTURER_NAME).setEntityContainer(CONTAINER_FQN)))) */;
-        }
-        
-      }
-      
-      
+      return dataProvider.getEntitySet(entitySetName);
     }
     return null;
   }
@@ -125,12 +115,12 @@ public class OdataHibernateEdmProvider extends EdmProvider {
     // EntitySets
     List<EntitySet> entitySets = new ArrayList<EntitySet>();
     container.setEntitySets(entitySets);
-    
+
     for (String cls : dataProvider.getClassesNames()) {
       entitySets.add(getEntitySet(container_fqn, dataProvider.getEntitySetName(cls)));
     }
-    
-    
+
+
 
     return container;
   }
@@ -142,4 +132,4 @@ public class OdataHibernateEdmProvider extends EdmProvider {
     }
     return null;
   }
-} 
+}

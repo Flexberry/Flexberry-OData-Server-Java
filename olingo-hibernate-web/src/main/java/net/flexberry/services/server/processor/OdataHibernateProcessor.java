@@ -19,9 +19,7 @@ package net.flexberry.services.server.processor;
  * under the License.
  */
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Collections;
@@ -146,14 +144,14 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
   public void readEntity(final ODataRequest request, ODataResponse response, final UriInfo uriInfo,
       final ContentType requestedContentType) throws ODataApplicationException, SerializerException {
     // First we have to figure out which entity set the requested entity is in
-    final EdmEntitySet edmEntitySet = getEdmEntitySet(uriInfo.asUriInfoResource());
+    EdmEntitySet edmEntitySet = getEdmEntitySet(uriInfo.asUriInfoResource());
 
     // Next we fetch the requested entity from the database
-    Entity entity;
+    Entity entity=null;
     try {
-      entity = readEntityInternal(uriInfo.asUriInfoResource(), edmEntitySet);
+      entity = dataProvider.read(uriInfo, edmEntitySet);
+      edmEntitySet = dataProvider.getEdmEntitySet(entity);
     } catch (NotFoundDataProviderException e) {
-      // If no entity was found for the given key we throw an exception.
       throw new ODataApplicationException("Nothing found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ENGLISH);
     } catch (DataProviderException e) {
       throw new ODataApplicationException(e.getMessage(), 500, Locale.ENGLISH);
@@ -186,7 +184,7 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
       try {
         dataProvider.create(entity);
       } catch (Exception e) {
-        throw new ODataApplicationException("dataProvider.create: "+e.getMessage(),
+        throw new ODataApplicationException("dataProvider: "+e.getMessage(),
             HttpStatusCode.BAD_REQUEST.getStatusCode(),Locale.ENGLISH,e);
       }
 
@@ -201,7 +199,7 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
       response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
       response.setHeader(HttpHeader.LOCATION,
               request.getRawBaseUri() + '/' + odata.createUriHelper().buildCanonicalURL(edmEntitySet, entity));
-      
+
     } catch (Exception e) {
       throw new ODataApplicationException("createEntity: "+e.getMessage(),
           HttpStatusCode.BAD_REQUEST.getStatusCode(),Locale.ENGLISH);
@@ -250,9 +248,9 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
     // First we have to figure out which entity set the requested entity is in
     final EdmEntitySet edmEntitySet = getEdmEntitySet(uriInfo.asUriInfoResource());
     // Next we fetch the requested entity from the database
-    final Entity entity;
+    Entity entity;
     try {
-      entity = readEntityInternal(uriInfo.asUriInfoResource(), edmEntitySet);
+      entity = dataProvider.read(uriInfo, edmEntitySet);
     } catch (DataProviderException e) {
       throw new ODataApplicationException(e.getMessage(), 500, Locale.ENGLISH);
     }
@@ -290,7 +288,7 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
     final EdmEntitySet edmEntitySet = getEdmEntitySet(uriInfo.asUriInfoResource());
     Entity entity;
     try {
-      entity = readEntityInternal(uriInfo.asUriInfoResource(), edmEntitySet);
+      entity = dataProvider.read(uriInfo, edmEntitySet);
     } catch (DataProviderException e) {
       throw new ODataApplicationException(e.getMessage(),
               HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ENGLISH);
@@ -333,22 +331,6 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
           response.setHeader(HttpHeader.CONTENT_TYPE, contentType.toContentTypeString());
         }
       }
-    }
-  }
-
-  private Entity readEntityInternal(final UriInfoResource uriInfo, final EdmEntitySet entitySet)
-      throws OdataHibernateDataProvider.DataProviderException {
-    // This method will extract the key values and pass them to the data provider
-    final UriResourceEntitySet resourceEntitySet = (UriResourceEntitySet) uriInfo.getUriResourceParts().get(0);
-    Entity entity;
-    try {
-      entity = dataProvider.read(entitySet, resourceEntitySet.getKeyPredicates());
-      return entity;
-    } catch (NotFoundDataProviderException e) {
-      // If no entity was found for the given key we throw an exception.
-      throw e;
-    } catch (Exception e) {
-      throw new OdataHibernateDataProvider.DataProviderException("OdataHibernateProcessor.readEntityInternal",e);
     }
   }
 
@@ -397,13 +379,17 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
   @Override
   public void deletePrimitive(final ODataRequest request, ODataResponse response, final UriInfo uriInfo)
       throws ODataApplicationException {
-    deleteProperty(response, uriInfo);
+    throw new ODataApplicationException("",
+        HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ENGLISH);
+    //deleteProperty(response, uriInfo);
   }
 
   @Override
   public void deletePrimitiveCollection(final ODataRequest request, ODataResponse response, final UriInfo uriInfo)
       throws ODataApplicationException {
-    deleteProperty(response, uriInfo);
+    throw new ODataApplicationException("",
+        HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ENGLISH);
+    //deleteProperty(response, uriInfo);
   }
 
   @Override
@@ -418,13 +404,17 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
   @Override
   public void deleteComplex(final ODataRequest request, final ODataResponse response, final UriInfo uriInfo)
       throws ODataApplicationException {
-    deleteProperty(response, uriInfo);
+    throw new ODataApplicationException("",
+        HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ENGLISH);
+    //deleteProperty(response, uriInfo);
   }
 
   @Override
   public void deleteComplexCollection(final ODataRequest request, ODataResponse response, final UriInfo uriInfo)
       throws ODataApplicationException {
-    deleteProperty(response, uriInfo);
+    throw new ODataApplicationException("",
+        HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ENGLISH);
+    //deleteProperty(response, uriInfo);
   }
 
 
@@ -516,11 +506,12 @@ public class OdataHibernateProcessor implements EntityCollectionProcessor, Entit
     }
   }
 
+  @SuppressWarnings("unused")
   private Property getPropertyData(final UriResourceEntitySet resourceEntitySet, final List<String> path)
       throws ODataApplicationException {
     Entity entity=null;
     try {
-      entity = dataProvider.read(resourceEntitySet.getEntitySet(), resourceEntitySet.getKeyPredicates());
+      entity =null;// dataProvider.read(resourceEntitySet.getEntitySet(), resourceEntitySet.getKeyPredicates());
     } catch (Exception e) {
       throw new ODataApplicationException(" dataProvider.read ",HttpStatusCode.BAD_REQUEST.getStatusCode(),
           Locale.ROOT,e);

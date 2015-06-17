@@ -40,10 +40,12 @@ public class OdataHibernateServlet extends HttpServlet {
 	        LOG.info("Created new data provider.");
 	      }
 	      OData odata = OData.newInstance();
-	      ServiceMetadata edm = odata.createServiceMetadata(
-	          new OdataHibernateEdmProvider(dataProvider), new ArrayList<EdmxReference>());
-	      dataProvider.setServiceMetadata(edm);
-	      ODataHttpHandler handler = odata.createHandler(edm);
+	      OdataHibernateEdmProvider edmProvider=new OdataHibernateEdmProvider(dataProvider);
+	      ServiceMetadata serviceMetadata = odata.createServiceMetadata(edmProvider,
+	          new ArrayList<EdmxReference>());
+	      dataProvider.setServiceMetadata(serviceMetadata);
+	      dataProvider.setEdmProvider(edmProvider);
+	      ODataHttpHandler handler = odata.createHandler(serviceMetadata);
 	      handler.register(new OdataHibernateProcessor(dataProvider));
 	      handler.process(req, resp);
 	    } catch (Exception e) {

@@ -1,6 +1,7 @@
 package net.flexberry.services.edm;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,6 +11,7 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 
 import org.apache.olingo.commons.api.data.ValueType;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
@@ -32,6 +34,7 @@ public class TypeParser {
   private List<String> key;
   private HashMap<String, String> columns;
   private HashMap<String, String> joinColumns;
+  private HashMap<String, String> oneToMany;
 
   public TypeParser(String className) throws ClassNotFoundException, NoSuchMethodException, SecurityException{
     this(new FullQualifiedName(className));
@@ -53,6 +56,7 @@ public class TypeParser {
   public EntityImpl createEntity(Object obj) throws NoSuchMethodException, SecurityException, IllegalAccessException,
   IllegalArgumentException, InvocationTargetException{
     EntityImpl entity=new EntityImpl();
+    entity.setType(obj.getClass().getCanonicalName());
     for (String column : getColumns().keySet()) {
       PropertyImpl property=new PropertyImpl(null, column, ValueType.PRIMITIVE, invokeGetMethod(obj,column));
       entity.addProperty(property);
@@ -91,6 +95,12 @@ public class TypeParser {
     return cl.getMethod(method).getReturnType();
   }
 
+  public Class<?> getOneToManyType(String columnName) throws NoSuchMethodException, SecurityException{
+    String method=oneToMany.get(columnName);
+    ParameterizedType set=(ParameterizedType) cl.getMethod(method).getGenericReturnType();
+    return (Class<?>)set.getActualTypeArguments()[0];
+  }
+
   public TypeParser(FullQualifiedName fqn) throws ClassNotFoundException, NoSuchMethodException, SecurityException{
     this.fqn=fqn;
     cl = Class.forName(fqn.getFullQualifiedNameAsString());
@@ -101,6 +111,7 @@ public class TypeParser {
     navigationProperties=new ArrayList<NavigationProperty>();
     columns=new HashMap<String, String>();
     joinColumns=new HashMap<String, String>();
+    oneToMany=new HashMap<String, String>();
     key=new ArrayList<String>();
     for(Method md: cl.getMethods()){
       if(md.isAnnotationPresent(Column.class)){
@@ -133,6 +144,18 @@ public class TypeParser {
         navigationProperty.setType(type);
         navigationProperties.add(navigationProperty);
       }
+      if(md.isAnnotationPresent(OneToMany.class)){
+        String propertyName=md.getName();
+        oneToMany.put(propertyName,md.getName());
+        NavigationProperty navigationProperty=new NavigationProperty();
+        navigationProperty.setName(propertyName);
+        navigationProperty.setCollection(true);
+        FullQualifiedName type=new FullQualifiedName(getOneToManyType(propertyName).getCanonicalName());
+        navigationProperty.setType(type);
+        navigationProperties.add(navigationProperty);
+      }
+
+
     }
   }
 
